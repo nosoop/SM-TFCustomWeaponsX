@@ -134,6 +134,45 @@ static void LoadCustomItemConfig() {
 	BuildPath(Path_SM, schemaPath, sizeof(schemaPath), "configs/%s", "cwx_schema.txt");
 	g_CustomItemConfig.ImportFromFile(schemaPath);
 	
+	char schemaDir[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, schemaDir, sizeof(schemaDir), "configs/%s", "cwx/");
+	DirectoryListing cwxConfigs = OpenDirectory(schemaDir, false);
+	
+	if (cwxConfigs) {
+		// find files within `configs/cwx/` and import them, too
+		FileType ftype;
+		char schemaRelPath[PLATFORM_MAX_PATH];
+		while (cwxConfigs.GetNext(schemaRelPath, sizeof(schemaRelPath), ftype)) {
+			if (ftype != FileType_File) {
+				continue;
+			}
+			
+			BuildPath(Path_SM, schemaPath, sizeof(schemaPath), "configs/cwx/%s", schemaRelPath);
+			
+			KeyValues importKV = new KeyValues("import");
+			importKV.ImportFromFile(schemaPath);
+			
+			char uid[MAX_ITEM_IDENTIFIER_LENGTH];
+			importKV.GotoFirstSubKey(false);
+			do {
+				importKV.GetSectionName(uid, sizeof(uid));
+				if (importKV.GetDataType(NULL_STRING) == KvData_None) {
+					if (g_CustomItemConfig.JumpToKey(uid)) {
+						LogMessage("Item uid %s already exists in schema, ignoring entry in %s",
+								uid, schemaRelPath);
+					} else {
+						g_CustomItemConfig.JumpToKey(uid, true);
+						g_CustomItemConfig.Import(importKV);
+					}
+					g_CustomItemConfig.GoBack();
+				}
+			} while (importKV.GotoNextKey(false));
+			importKV.GoBack();
+			
+			delete importKV;
+		}
+	}
+	
 	// TODO add a forward that allows other plugins to hook registered attribute names and
 	// precache any resources
 	
