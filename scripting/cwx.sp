@@ -526,7 +526,7 @@ static bool CanPlayerEquipItem(int client, const char[] uid) {
 static void BuildLoadoutSlotMenu() {
 	delete s_LoadoutSlotMenu;
 	s_LoadoutSlotMenu = new Menu(OnLoadoutSlotMenuEvent,
-			MENU_ACTIONS_DEFAULT | MenuAction_Display);
+			MENU_ACTIONS_DEFAULT | MenuAction_Display | MenuAction_DisplayItem);
 	
 	for (int i; i < 3; i++) {
 		char name[32];
@@ -623,7 +623,6 @@ int OnLoadoutSlotMenuEvent(Menu menu, MenuAction action, int param1, int param2)
 			SetGlobalTransTarget(client);
 			
 			char buffer[64];
-			// TODO replace this with playerclasses
 			FormatEx(buffer, sizeof(buffer), "Custom Weapons X");
 			
 			panel.SetTitle(buffer);
@@ -643,6 +642,25 @@ int OnLoadoutSlotMenuEvent(Menu menu, MenuAction action, int param1, int param2)
 			
 			g_iPlayerSlotInMenu[client] = TF2Econ_TranslateLoadoutSlotNameToIndex(loadoutSlot);
 			s_EquipMenu.Display(client, 30);
+		}
+		
+		/**
+		 * Renders the native loadout slot name for the client.
+		 */
+		case MenuAction_DisplayItem: {
+			int client = param1;
+			int position = param2;
+			
+			char loadoutSlotName[64];
+			menu.GetItem(position, loadoutSlotName, sizeof(loadoutSlotName));
+			
+			SetGlobalTransTarget(client);
+			int loadoutSlot = TF2Econ_TranslateLoadoutSlotNameToIndex(loadoutSlotName);
+			FormatEx(loadoutSlotName, sizeof(loadoutSlotName), "%t ›",
+					g_LocalizedLoadoutSlots[loadoutSlot]);
+			SetGlobalTransTarget(LANG_SERVER);
+			
+			return RedrawMenuItem(loadoutSlotName);
 		}
 	}
 	return 0;
@@ -667,7 +685,6 @@ int OnEquipMenuEvent(Menu menu, MenuAction action, int param1, int param2) {
 			panel.SetTitle(buffer);
 			
 			SetGlobalTransTarget(LANG_SERVER);
-			#pragma unused client
 		}
 		
 		/**
