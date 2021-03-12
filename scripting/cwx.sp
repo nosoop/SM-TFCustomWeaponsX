@@ -91,6 +91,7 @@ char g_LocalizedLoadoutSlots[][] = {
 
 public void OnPluginStart() {
 	LoadTranslations("cwx.phrases");
+	LoadTranslations("common.phrases");
 	
 	Handle hGameConf = LoadGameConfigFile("sdkhooks.games");
 	if (!hGameConf) {
