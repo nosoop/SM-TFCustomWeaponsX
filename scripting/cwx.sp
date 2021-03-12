@@ -90,6 +90,8 @@ char g_LocalizedLoadoutSlots[][] = {
 };
 
 public void OnPluginStart() {
+	LoadTranslations("cwx.phrases");
+	
 	Handle hGameConf = LoadGameConfigFile("sdkhooks.games");
 	if (!hGameConf) {
 		SetFailState("Failed to load gamedata (sdkhooks.games).");
@@ -658,7 +660,7 @@ int OnEquipMenuEvent(Menu menu, MenuAction action, int param1, int param2) {
 			SetGlobalTransTarget(client);
 			
 			char buffer[64];
-			FormatEx(buffer, sizeof(buffer), "%s » %s",
+			FormatEx(buffer, sizeof(buffer), "%t » %t",
 					g_LocalizedPlayerClass[g_iPlayerClassInMenu[client]],
 					g_LocalizedLoadoutSlots[g_iPlayerSlotInMenu[client]]);
 			
@@ -699,6 +701,7 @@ int OnEquipMenuEvent(Menu menu, MenuAction action, int param1, int param2) {
 				return ITEMDRAW_IGNORE;
 			}
 		}
+		
 		/**
 		 * Return back to the loadout selection menu.
 		 */
