@@ -15,12 +15,13 @@
 #include <tf2attributes>
 #include <tf_custom_attributes>
 #include <tf2utils>
+#include <clientprefs>
 
 public Plugin myinfo = {
 	name = "[TF2] Custom Weapons X",
 	author = "nosoop",
 	description = "Allows server operators to design their own weapons.",
-	version = "X.0.1",
+	version = "X.0.2",
 	url = "https://github.com/nosoop/SM-TFCustomWeaponsX"
 }
 
@@ -49,6 +50,8 @@ KeyValues g_CustomItemConfig;
 Handle g_SDKCallWeaponSwitch;
 
 StringMap s_EquipLoadoutPosition;
+
+Cookie g_ItemPersistCookies[NUM_PLAYER_CLASSES][NUM_ITEMS];
 
 #include "cwx/item_entity.sp"
 #include "cwx/item_export.sp"
@@ -81,6 +84,25 @@ public void OnPluginStart() {
 	RegAdminCmd("sm_cwx_equip_target", EquipItemCmdTarget, ADMFLAG_ROOT);
 	
 	RegAdminCmd("sm_cwx_export", ExportActiveWeapon, ADMFLAG_ROOT);
+	
+	// TODO: I'd like to use a separate, independent database for this
+	// but leveraging the cookie system is easier for now
+	char cookieName[64], cookieDesc[128];
+	for (int c; c < NUM_PLAYER_CLASSES; c++) {
+		for (int i; i < NUM_ITEMS; i++) {
+			FormatEx(cookieName, sizeof(cookieName), "cwx_loadout_%d_%d", c, i);
+			FormatEx(cookieDesc, sizeof(cookieDesc),
+					"CWX loadout entry for class %d in slot %d", c, i);
+			g_ItemPersistCookies[c][i] = new Cookie(cookieName, cookieDesc,
+					CookieAccess_Private);
+		}
+	}
+	
+	for (int i = 1; i <= MaxClients; i++) {
+		if (IsClientConnected(i) && IsClientAuthorized(i)) {
+			FetchLoadoutItems(i);
+		}
+	}
 }
 
 public void OnAllPluginsLoaded() {
@@ -103,8 +125,24 @@ public void OnClientConnected(int client) {
 	}
 }
 
-public void OnClientAuthorized(int client) {
+public void OnClientAuthorized(int client, const char[] auth) {
 	// TODO request item information from backing storage
+	FetchLoadoutItems(client);
+}
+
+void FetchLoadoutItems(int client) {
+	if (AreClientCookiesCached(client)) {
+		OnClientCookiesCached(client);
+	}
+}
+
+public void OnClientCookiesCached(int client) {
+	for (int c; c < NUM_PLAYER_CLASSES; c++) {
+		for (int i; i < NUM_ITEMS; i++) {
+			g_ItemPersistCookies[c][i].Get(client, g_CurrentLoadout[client][c][i],
+					sizeof(g_CurrentLoadout[][][]));
+		}
+	}
 	g_bRetrievedLoadout[client] = true;
 }
 
@@ -230,9 +268,12 @@ bool SetClientCustomLoadoutItem(int client, const char[] itemuid) {
 	
 	int position[NUM_PLAYER_CLASSES];
 	s_EquipLoadoutPosition.GetArray(itemuid, position, sizeof(position));
-	if (0 <= position[playerClass] < NUM_ITEMS) {
-		strcopy(g_CurrentLoadout[client][playerClass][position[playerClass]],
+	
+	int itemSlot = position[playerClass];
+	if (0 <= itemSlot < NUM_ITEMS) {
+		strcopy(g_CurrentLoadout[client][playerClass][itemSlot],
 				sizeof(g_CurrentLoadout[][][]), itemuid);
+		g_ItemPersistCookies[playerClass][itemSlot].Set(client, itemuid);
 	} else {
 		return false;
 	}
