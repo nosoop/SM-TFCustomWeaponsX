@@ -1,0 +1,49 @@
+"Items"
+{
+	"{e86f9513-1454-49dd-97b1-ce1faab2f89e}" // we just need a unique identifier here
+	{
+		//// item name, to be displayed in any menus
+		"name"			"The Airblaster"
+		
+		//// "inherits" is special:  resolves to item definition and determines classname, item slots, quality
+		"inherits"		"TF_WEAPON_FLAMETHROWER"
+		
+		//// "inherits" automatically determines this if provided, but
+		//// sometimes you want a different itemdef (e.g. hiding weapon viewmodels with fists)
+		// "defindex"	"21"
+		
+		//// if not using "inherits", full classname must be provided
+		//// no magic bullshit happens in the backend (except translation based on player class)
+		// "item_class"	"tf_weapon_flamethrower"
+		
+		//// manually defined loadout slot, for listing in the correct menu and for inventory storage
+		//// "inherits" automatically determines this if provided.
+		//// if manually defined, this MUST match the loadout slot for the item classname!
+		//// you *cannot* specify your own slot and expect a weapon to work in a different slot than it was designed for
+		// "used_by_classes"
+		// {
+		//     "scout" "primary" // primary weapon for scout
+		// }
+		
+		//// whether or not static (item schema) attributes are preserved
+		//// 0: only use attributes applied at runtime 
+		//// 1: preserves static attributes
+		//// 2: attempts to nullify static gameplay-affecting attributes while preserving other ones (so you can use minmode viewmodels, etc.)
+		"keep_static_attrs"		"1"
+		
+		//// contains official attributes
+		"attributes_game"
+		{
+			"airblast_destroy_projectile"				"1"
+			"airblast cost scale hidden"				"0.2"
+		}
+		
+		//// custom attributes by cattr -- this just gets copied into Custom Attributes' core, nested structures and all
+		"attributes_custom"
+		{
+			"airblast projectiles restores health"		"30"
+			"airblast projectiles adds self condition"	"condition=32 duration=10"
+			"clientmodel override"						"models/weapons/c_models/c_firkin_flamer/c_firkin_flamer.mdl"
+		}
+	}
+}
