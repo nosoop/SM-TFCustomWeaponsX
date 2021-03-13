@@ -41,6 +41,39 @@ Action ExportActiveWeapon(int client, int argc) {
 		exportedWeapon.SetString("inherits", itemName);
 	}
 	
+	{
+		// export our native attributes
+		exportedWeapon.JumpToKey("attributes_game", true);
+		
+		// TODO: we should implement native accessors iterating runtime attribs in tf2attributes
+		int attrdefs[32];
+		int nAttrs = TF2Attrib_ListDefIndices(weapon, attrdefs, sizeof(attrdefs));
+		for (int i = 0; i < nAttrs; i++) {
+			Address pAttrib = TF2Attrib_GetByDefIndex(weapon, attrdefs[i]);
+			if (!pAttrib) {
+				continue;
+			}
+			
+			char attrName[128];
+			TF2Econ_GetAttributeName(attrdefs[i], attrName, sizeof(attrName));
+			
+			any attrValue = TF2Attrib_GetValue(pAttrib);
+			
+			char attribType[64];
+			if (TF2Econ_GetAttributeDefinitionString(attrdefs[i], "attribute_type",
+					attribType, sizeof(attribType)) && StrEqual(attribType, "string")) {
+				// not the most ideal detection method but it'll do
+				char attrStrValue[128];
+				TF2Attrib_UnsafeGetStringValue(attrValue, attrStrValue, sizeof(attrStrValue));
+				exportedWeapon.SetString(attrName, attrStrValue);
+			} else {
+				// everything else that matters are float values
+				exportedWeapon.SetFloat(attrName, attrValue);
+			}
+		}
+		exportedWeapon.GoBack();
+	}
+	
 	KeyValues kv = TF2CustAttr_GetAttributeKeyValues(weapon);
 	if (kv) {
 		// export our custom attributes
