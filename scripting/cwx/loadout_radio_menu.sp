@@ -222,7 +222,12 @@ int OnEquipMenuEvent(Menu menu, MenuAction action, int param1, int param2) {
 			menu.GetItem(position, uid, sizeof(uid));
 			
 			// TODO: we should be making this a submenu with item description?
-			SetClientCustomLoadoutItem(client, uid);
+			if (uid[0]) {
+				SetClientCustomLoadoutItem(client, uid);
+			} else {
+				UnsetClientCustomLoadoutItem(client, g_iPlayerClassInMenu[client],
+						g_iPlayerSlotInMenu[client]);
+			}
 		}
 		
 		/**

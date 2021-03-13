@@ -23,7 +23,7 @@ public Plugin myinfo = {
 	name = "[TF2] Custom Weapons X",
 	author = "nosoop",
 	description = "Allows server operators to design their own weapons.",
-	version = "X.0.4",
+	version = "X.0.5",
 	url = "https://github.com/nosoop/SM-TFCustomWeaponsX"
 }
 
@@ -316,6 +316,20 @@ bool SetClientCustomLoadoutItem(int client, const char[] itemuid) {
 		return false;
 	}
 	
+	OnClientCustomLoadoutItemModified(client);
+	return true;
+}
+
+void UnsetClientCustomLoadoutItem(int client, int playerClass, int itemSlot) {
+	strcopy(g_CurrentLoadout[client][playerClass][itemSlot],
+				sizeof(g_CurrentLoadout[][][]), "");
+	g_ItemPersistCookies[playerClass][itemSlot].Set(client, "");
+	g_CurrentLoadoutEntity[client][playerClass][itemSlot] = INVALID_ENT_REFERENCE;
+	
+	OnClientCustomLoadoutItemModified(client);
+}
+
+void OnClientCustomLoadoutItemModified(int client) {
 	if (!IsPlayerInRespawnRoom(client)) {
 		// TODO: notify that the player will get the item when they resup
 		
@@ -325,7 +339,6 @@ bool SetClientCustomLoadoutItem(int client, const char[] itemuid) {
 	}
 	// NOTE: we don't do active reequip on live players, because that's kind of a mess
 	// return LookupAndEquipItem(client, itemuid);
-	return true;
 }
 
 int LookupAndEquipItem(int client, const char[] itemuid) {
