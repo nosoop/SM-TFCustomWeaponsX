@@ -8,6 +8,7 @@ plugins = [
 # files to copy to builddir, relative to root
 # plugin names from previous list will be copied automatically
 copy_files = [
+	"scripting/cwx/item_entity.sp",
 	"scripting/cwx/item_export.sp",
 	"scripting/cwx/loadout_radio_menu.sp",
 	

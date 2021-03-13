@@ -47,6 +47,7 @@ Handle g_SDKCallWeaponSwitch;
 
 StringMap s_EquipLoadoutPosition;
 
+#include "cwx/item_entity.sp"
 #include "cwx/item_export.sp"
 #include "cwx/loadout_radio_menu.sp"
 
@@ -143,6 +144,9 @@ static void LoadCustomItemConfig() {
 	// TODO process other config logic here.
 }
 
+/**
+ * Testing command to equip the given item uid on the player.
+ */
 Action EquipItemCmd(int client, int argc) {
 	if (!client) {
 		return Plugin_Continue;
@@ -160,6 +164,9 @@ Action EquipItemCmd(int client, int argc) {
 	return Plugin_Handled;
 }
 
+/**
+ * Testing command to equip the given item uid on the specified target.
+ */
 Action EquipItemCmdTarget(int client, int argc) {
 	if (!client) {
 		return Plugin_Continue;
@@ -187,6 +194,7 @@ Action OnPlayerLoadoutUpdated(UserMsg msg_id, BfRead msg, const int[] players,
 	int playerClass = view_as<int>(TF2_GetPlayerClass(client));
 	
 	// TODO reapply items
+	#pragma unused playerClass
 }
 
 /**
@@ -301,6 +309,7 @@ void EquipCustomItem(int client, KeyValues customItemDefinition) {
 	// create our item
 	int itemEntity = TF2_CreateItem(itemdef, itemClass);
 	
+	// TODO: implement a version that nullifies runtime attributes to their defaults
 	bool bKeepStaticAttrs = !!customItemDefinition.GetNum("keep_static_attrs", true);
 	SetEntProp(itemEntity, Prop_Send, "m_bOnlyIterateItemViewAttributes", !bKeepStaticAttrs);
 	
@@ -309,6 +318,9 @@ void EquipCustomItem(int client, KeyValues customItemDefinition) {
 		if (customItemDefinition.GotoFirstSubKey(false)) {
 			do {
 				char key[256], value[256];
+				
+				// TODO: support multiline KeyValues
+				// keyvalues are case-insensitive, so section name + value should sidestep that
 				customItemDefinition.GetSectionName(key, sizeof(key));
 				customItemDefinition.GetString(NULL_STRING, value, sizeof(value));
 				
@@ -326,34 +338,34 @@ void EquipCustomItem(int client, KeyValues customItemDefinition) {
 		customItemDefinition.GoBack();
 	}
 	
-	// TODO retrieve our loadout slot
-	//      check what entity is present with TF2_GetPlayerLoadoutSlot
-	//      unequip as appropriate then equip our item
-	
-	// TODO remove wearable when applying weapon and vice-versa
-	if (!TF2_IsWearable(itemEntity)) {
-		int slot = TF2Util_GetWeaponSlot(itemEntity);
-		int existingEntity = GetPlayerWeaponSlot(client, slot);
-		if (IsValidEntity(existingEntity)) {
-			RemoveEntity(existingEntity);
-		}
-		
-		EquipPlayerWeapon(client, itemEntity);
-		
-		if (TF2_GetClientActiveWeapon(client) == existingEntity) {
-			SetActiveWeapon(client, itemEntity);
-		}
-		TF2_ResetWeaponAmmo(itemEntity);
-	} else {
-		// TODO we should check m_hWearables instead of using GetPlayerLoadoutSlot
-		int activeWearable = TF2_GetPlayerLoadoutSlot(client,
-				TF2Econ_GetItemLoadoutSlot(itemdef, TF2_GetPlayerClass(client)));
-		// TODO remove based on loadout slot?
-		if (IsValidEntity(activeWearable)) {
-			RemoveEntity(activeWearable);
-		}
-		TF2_EquipPlayerWearable(client, itemEntity);
+	// remove existing item(s) on player
+	bool bRemovedWeaponInSlot;
+	if (TF2Util_IsEntityWeapon(itemEntity)) {
+		// replace item by slot for cross-class equip compatibility
+		int weaponSlot = TF2Util_GetWeaponSlot(itemEntity);
+		bRemovedWeaponInSlot = IsValidEntity(GetPlayerWeaponSlot(client, weaponSlot));
+		TF2_RemoveWeaponSlot(client, weaponSlot);
 	}
+	
+	// we didn't remove a weapon by its weapon slot; remove item based on loadout slot
+	if (!bRemovedWeaponInSlot) {
+		int loadoutSlot = TF2Econ_GetItemLoadoutSlot(itemdef, TF2_GetPlayerClass(client));
+		if (loadoutSlot == -1) {
+			loadoutSlot = TF2Econ_GetItemDefaultLoadoutSlot(itemdef);
+			if (loadoutSlot == -1) {
+				return;
+			}
+		}
+		
+		// HACK: remove the correct item for demoman when applying the revolver
+		if (TF2Util_IsEntityWeapon(itemEntity)
+				&& TF2Econ_GetItemLoadoutSlot(itemdef, TF2_GetPlayerClass(client)) == -1) {
+			loadoutSlot = TF2Util_GetWeaponSlot(itemEntity);
+		}
+		
+		TF2_RemoveItemByLoadoutSlot(client, loadoutSlot);
+	}
+	TF2_EquipPlayerEconItem(client, itemEntity);
 }
 
 /**
@@ -383,41 +395,6 @@ static int FindItemByName(const char[] name) {
 	
 	return FindItemByName(name);
 }
-
-/**
- * Creates a weapon for the specified player.
- */
-stock int TF2_CreateItem(int defindex, const char[] itemClass) {
-	int weapon = CreateEntityByName(itemClass);
-	
-	if (IsValidEntity(weapon)) {
-		SetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex", defindex);
-		SetEntProp(weapon, Prop_Send, "m_bInitialized", 1);
-		
-		// Allow quality / level override by updating through the offset.
-		char netClass[64];
-		GetEntityNetClass(weapon, netClass, sizeof(netClass));
-		SetEntData(weapon, FindSendPropInfo(netClass, "m_iEntityQuality"), 6);
-		SetEntData(weapon, FindSendPropInfo(netClass, "m_iEntityLevel"), 1);
-		
-		SetEntProp(weapon, Prop_Send, "m_iEntityQuality", 6);
-		SetEntProp(weapon, Prop_Send, "m_iEntityLevel", 1);
-		
-		DispatchSpawn(weapon);
-	}
-	return weapon;
-}
-
-static void SetActiveWeapon(int client, int weapon) {
-	int hActiveWeapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
-	if (IsValidEntity(hActiveWeapon)) {
-		bool bResetParity = !!GetEntProp(hActiveWeapon, Prop_Send, "m_bResetParity");
-		SetEntProp(hActiveWeapon, Prop_Send, "m_bResetParity", !bResetParity);
-	}
-	
-	SDKCall(g_SDKCallWeaponSwitch, client, weapon, 0);
-}
-
 
 bool CanPlayerEquipItem(int client, const char[] uid) {
 	// TODO hide based on admin overrides
