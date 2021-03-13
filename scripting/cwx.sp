@@ -16,12 +16,13 @@
 #include <tf_custom_attributes>
 #include <tf2utils>
 #include <clientprefs>
+#include <dhooks>
 
 public Plugin myinfo = {
 	name = "[TF2] Custom Weapons X",
 	author = "nosoop",
 	description = "Allows server operators to design their own weapons.",
-	version = "X.0.2",
+	version = "X.0.3",
 	url = "https://github.com/nosoop/SM-TFCustomWeaponsX"
 }
 
@@ -45,6 +46,8 @@ public Plugin myinfo = {
 
 bool g_bRetrievedLoadout[MAXPLAYERS + 1];
 char g_CurrentLoadout[MAXPLAYERS + 1][NUM_PLAYER_CLASSES][NUM_ITEMS][MAX_ITEM_IDENTIFIER_LENGTH];
+
+int g_CurrentLoadoutEntity[MAXPLAYERS + 1][NUM_PLAYER_CLASSES][NUM_ITEMS];
 
 KeyValues g_CustomItemConfig;
 Handle g_SDKCallWeaponSwitch;
@@ -77,6 +80,17 @@ public void OnPluginStart() {
 	
 	delete hGameConf;
 	
+	hGameConf = LoadGameConfigFile("tf2.custom_weapons_x");
+	if (!hGameConf) {
+		SetFailState("Failed to load gamedata (tf2.custom_weapons_x).");
+	}
+	
+	Handle dtGetLoadoutItem = DHookCreateFromConf(hGameConf, "CTFPlayer::GetLoadoutItem()");
+	DHookEnableDetour(dtGetLoadoutItem, true, OnGetLoadoutItemPost);
+	
+	delete hGameConf;
+	
+	
 	HookUserMessage(GetUserMessageId("PlayerLoadoutUpdated"), OnPlayerLoadoutUpdated);
 	
 	RegAdminCmd("sm_cwx", DisplayItems, ADMFLAG_ROOT);
@@ -99,7 +113,12 @@ public void OnPluginStart() {
 	}
 	
 	for (int i = 1; i <= MaxClients; i++) {
-		if (IsClientConnected(i) && IsClientAuthorized(i)) {
+		if (!IsClientConnected(i)) {
+			continue;
+		}
+		OnClientConnected(i);
+		
+		if (IsClientAuthorized(i)) {
 			FetchLoadoutItems(i);
 		}
 	}
@@ -121,6 +140,7 @@ public void OnClientConnected(int client) {
 	for (int c; c < NUM_PLAYER_CLASSES; c++) {
 		for (int i; i < NUM_ITEMS; i++) {
 			g_CurrentLoadout[client][c][i] = "";
+			g_CurrentLoadoutEntity[client][c][i] = INVALID_ENT_REFERENCE;
 		}
 	}
 }
@@ -216,7 +236,8 @@ Action EquipItemCmd(int client, int argc) {
 	StripQuotes(itemuid);
 	TrimString(itemuid);
 	
-	if (!LookupAndEquipItem(client, itemuid)) {
+	int item = LookupAndEquipItem(client, itemuid);
+	if (!IsValidEntity(item)) {
 		ReplyToCommand(client, "Unknown custom item uid %s", itemuid);
 	}
 	return Plugin_Handled;
@@ -240,7 +261,7 @@ Action EquipItemCmdTarget(int client, int argc) {
 	TrimString(itemuid);
 	
 	int target = FindTarget(client, targetString, .immunity = false);
-	if (!LookupAndEquipItem(target, itemuid)) {
+	if (!IsValidEntity(LookupAndEquipItem(target, itemuid))) {
 		ReplyToCommand(client, "Unknown custom item uid %s", itemuid);
 	}
 	return Plugin_Handled;
@@ -251,12 +272,42 @@ Action OnPlayerLoadoutUpdated(UserMsg msg_id, BfRead msg, const int[] players,
 	int client = msg.ReadByte();
 	int playerClass = view_as<int>(TF2_GetPlayerClass(client));
 	
-	// TODO proper item persistence - this just uses the old equipment apply method
 	for (int i; i < NUM_ITEMS; i++) {
-		if (g_CurrentLoadout[client][playerClass][i][0]) {
-			LookupAndEquipItem(client, g_CurrentLoadout[client][playerClass][i]);
+		if (!g_CurrentLoadout[client][playerClass][i][0]) {
+			// no item specified, use default
+			continue;
+		}
+		
+		// equip our item if it isn't already equipped
+		if (!IsValidEntity(g_CurrentLoadoutEntity[client][playerClass][i])) {
+			int entity = LookupAndEquipItem(client, g_CurrentLoadout[client][playerClass][i]);
+			g_CurrentLoadoutEntity[client][playerClass][i] = EntIndexToEntRef(entity);
 		}
 	}
+}
+
+/**
+ * Item persistence - we return our item's CEconItemView instance when the game looks up our
+ * inventory item.  This prevents our custom item from being invalidated when touch resupply.
+ */
+MRESReturn OnGetLoadoutItemPost(int client, Handle hReturn, Handle hParams) {
+	int playerClass = DHookGetParam(hParams, 1);
+	int loadoutSlot = DHookGetParam(hParams, 2);
+	
+	if (loadoutSlot < 0 || loadoutSlot >= NUM_ITEMS) {
+		return MRES_Ignored;
+	}
+	
+	int storedItem = g_CurrentLoadoutEntity[client][playerClass][loadoutSlot];
+	if (!IsValidEntity(storedItem) || !HasEntProp(storedItem, Prop_Send, "m_Item")) {
+		return MRES_Ignored;
+	}
+	
+	Address pStoredItemView = GetEntityAddress(storedItem)
+			+ view_as<Address>(GetEntSendPropOffs(storedItem, "m_Item", true));
+	
+	DHookSetReturn(hReturn, pStoredItemView);
+	return MRES_Supercede;
 }
 
 /**
@@ -274,6 +325,7 @@ bool SetClientCustomLoadoutItem(int client, const char[] itemuid) {
 		strcopy(g_CurrentLoadout[client][playerClass][itemSlot],
 				sizeof(g_CurrentLoadout[][][]), itemuid);
 		g_ItemPersistCookies[playerClass][itemSlot].Set(client, itemuid);
+		g_CurrentLoadoutEntity[client][playerClass][itemSlot] = INVALID_ENT_REFERENCE;
 	} else {
 		return false;
 	}
@@ -290,10 +342,10 @@ bool SetClientCustomLoadoutItem(int client, const char[] itemuid) {
 	return true;
 }
 
-bool LookupAndEquipItem(int client, const char[] itemuid) {
+int LookupAndEquipItem(int client, const char[] itemuid) {
 	g_CustomItemConfig.Rewind();
 	if (g_CustomItemConfig.JumpToKey(itemuid)) {
-		EquipCustomItem(client, g_CustomItemConfig);
+		return EquipCustomItem(client, g_CustomItemConfig);
 		
 		// TODO store the uid as part of our active loadout for persistence
 		// 
@@ -308,16 +360,15 @@ bool LookupAndEquipItem(int client, const char[] itemuid) {
 		// 
 		// I think inherits + manual definition fallback is the way to go, just so we don't have
 		// to deal with runtime shenanigans.
-		
-		return true;
 	}
-	return false;
+	return INVALID_ENT_REFERENCE;
 }
 
 /**
  * Equips an item from the given KeyValues structure.
+ * Returns the item entity if successful.
  */
-void EquipCustomItem(int client, KeyValues customItemDefinition) {
+int EquipCustomItem(int client, KeyValues customItemDefinition) {
 	char inheritFromItem[64];
 	customItemDefinition.GetString("inherits", inheritFromItem, sizeof(inheritFromItem));
 	int inheritDef = FindItemByName(inheritFromItem);
@@ -339,7 +390,7 @@ void EquipCustomItem(int client, KeyValues customItemDefinition) {
 		
 		LogError("Custom item %s (uid %s) inherits from unknown item '%s'", customItemName,
 				sectionName, inheritFromItem);
-		return;
+		return INVALID_ENT_REFERENCE;
 	}
 	
 	// apply inherited overrides
@@ -352,7 +403,7 @@ void EquipCustomItem(int client, KeyValues customItemDefinition) {
 				"(none)");
 		customItemDefinition.GetSectionName(sectionName, sizeof(sectionName));
 		LogError("Custom item %s (uid %s) is missing classname", customItemName, sectionName);
-		return;
+		return INVALID_ENT_REFERENCE;
 	}
 	
 	if (itemdef == TF_ITEMDEF_DEFAULT) {
@@ -363,7 +414,7 @@ void EquipCustomItem(int client, KeyValues customItemDefinition) {
 		
 		LogError("Custom item %s (uid %s) was not defined with a valid definition index.",
 				customItemName, sectionName);
-		return;
+		return INVALID_ENT_REFERENCE;
 	}
 	
 	TF2Econ_TranslateWeaponEntForClass(itemClass, sizeof(itemClass),
@@ -424,7 +475,7 @@ void EquipCustomItem(int client, KeyValues customItemDefinition) {
 		if (loadoutSlot == -1) {
 			loadoutSlot = TF2Econ_GetItemDefaultLoadoutSlot(itemdef);
 			if (loadoutSlot == -1) {
-				return;
+				return INVALID_ENT_REFERENCE;
 			}
 		}
 		
@@ -437,6 +488,7 @@ void EquipCustomItem(int client, KeyValues customItemDefinition) {
 		TF2_RemoveItemByLoadoutSlot(client, loadoutSlot);
 	}
 	TF2_EquipPlayerEconItem(client, itemEntity);
+	return itemEntity;
 }
 
 /**
