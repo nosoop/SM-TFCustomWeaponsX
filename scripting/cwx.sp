@@ -47,6 +47,7 @@ Handle g_SDKCallWeaponSwitch;
 
 StringMap s_EquipLoadoutPosition;
 
+#include "cwx/item_export.sp"
 #include "cwx/loadout_radio_menu.sp"
 
 public void OnPluginStart() {
@@ -177,68 +178,6 @@ Action EquipItemCmdTarget(int client, int argc) {
 	if (!LookupAndEquipItem(target, itemuid)) {
 		ReplyToCommand(client, "Unknown custom item uid %s", itemuid);
 	}
-	return Plugin_Handled;
-}
-
-/**
- * Exports the currently active weapon to an item config file in CWX schema format.
- */
-Action ExportActiveWeapon(int client, int argc) {
-	// TODO we should allow loadout slot selection
-	int weapon = TF2_GetClientActiveWeapon(client);
-	if (!IsValidEntity(weapon)) {
-		ReplyToCommand(client, "No active weapon to export.");
-		return Plugin_Handled;
-	}
-	
-	char uuid_rendered[64], uuid_bracketed[64];
-	GenerateUUID4(uuid_rendered, sizeof(uuid_rendered));
-	FormatEx(uuid_bracketed, sizeof(uuid_bracketed), "{%s}", uuid_rendered);
-	
-	KeyValues exportedWeapon = new KeyValues("ItemExport");
-	exportedWeapon.JumpToKey(uuid_bracketed, true);
-	
-	{
-		// client can specify a custom display name to export with
-		char displayName[64];
-		if (argc > 1) {
-			GetCmdArg(2, displayName, sizeof(displayName));
-		} else {
-			// use name based on uuid for the server operator to fix up later
-			strcopy(displayName, sizeof(displayName), uuid_rendered);
-		}
-		exportedWeapon.SetString("name", displayName);
-	}
-	
-	{
-		// assume the item inherits based on itemdef
-		int defindex = TF2_GetItemDefinitionIndex(weapon);
-		char itemName[64];
-		TF2Econ_GetItemName(defindex, itemName, sizeof(itemName));
-		
-		exportedWeapon.SetString("inherits", itemName);
-	}
-	
-	KeyValues kv = TF2CustAttr_GetAttributeKeyValues(weapon);
-	if (kv) {
-		// export our custom attributes
-		exportedWeapon.JumpToKey("attributes_custom", true);
-		exportedWeapon.Import(kv);
-		
-		delete kv;
-		exportedWeapon.GoBack();
-	}
-	
-	exportedWeapon.Rewind();
-	
-	char filePath[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, filePath, sizeof(filePath), "configs/cwx/%s.cfg", uuid_rendered);
-	
-	exportedWeapon.ExportToFile(filePath);
-	
-	ReplyToCommand(client, "Exported active weapon to %s", filePath);
-	delete exportedWeapon;
-	
 	return Plugin_Handled;
 }
 
@@ -479,18 +418,6 @@ static void SetActiveWeapon(int client, int weapon) {
 	SDKCall(g_SDKCallWeaponSwitch, client, weapon, 0);
 }
 
-static void GenerateUUID4(char[] buffer, int maxlen) {
-	int uuid[4];
-	for (int i; i < sizeof(uuid); i++) {
-		uuid[i] = GetURandomInt();
-	}
-	
-	FormatEx(buffer, maxlen, "%08x-%04x-%04x-%04x-%04x%08x",
-			uuid[0],
-			(uuid[1] >>> 16) & 0xFFFF, (uuid[1] & 0xFFFF),
-			(uuid[2] >>> 16) & 0xFFFF, (uuid[2] & 0xFFFF),
-			uuid[3]);
-}
 
 bool CanPlayerEquipItem(int client, const char[] uid) {
 	// TODO hide based on admin overrides
