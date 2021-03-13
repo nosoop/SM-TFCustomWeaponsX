@@ -20,7 +20,7 @@ public Plugin myinfo = {
 	name = "[TF2] Custom Weapons X",
 	author = "nosoop",
 	description = "Allows server operators to design their own weapons.",
-	version = "X.0.0",
+	version = "X.0.1",
 	url = "https://github.com/nosoop/SM-TFCustomWeaponsX"
 }
 
@@ -31,6 +31,8 @@ public Plugin myinfo = {
 // this is the maximum expected length of our UID
 #define MAX_ITEM_IDENTIFIER_LENGTH 64
 
+#define MAX_ITEM_NAME_LENGTH 128
+
 // this is the number of slots allocated to our thing
 #define NUM_ITEMS 5
 
@@ -40,7 +42,8 @@ public Plugin myinfo = {
 
 // StringMap g_CustomItems; // <identifier, custom_item_entry_t>
 
-char g_CurrentLoadout[MAXPLAYERS + 1][NUM_ITEMS][MAX_ITEM_IDENTIFIER_LENGTH];
+bool g_bRetrievedLoadout[MAXPLAYERS + 1];
+char g_CurrentLoadout[MAXPLAYERS + 1][NUM_PLAYER_CLASSES][NUM_ITEMS][MAX_ITEM_IDENTIFIER_LENGTH];
 
 KeyValues g_CustomItemConfig;
 Handle g_SDKCallWeaponSwitch;
@@ -86,6 +89,23 @@ public void OnAllPluginsLoaded() {
 
 public void OnMapStart() {
 	LoadCustomItemConfig();
+}
+
+/**
+ * Clear out per-client inventory from previous player.
+ */
+public void OnClientConnected(int client) {
+	g_bRetrievedLoadout[client] = false;
+	for (int c; c < NUM_PLAYER_CLASSES; c++) {
+		for (int i; i < NUM_ITEMS; i++) {
+			g_CurrentLoadout[client][c][i] = "";
+		}
+	}
+}
+
+public void OnClientAuthorized(int client) {
+	// TODO request item information from backing storage
+	g_bRetrievedLoadout[client] = true;
 }
 
 static void LoadCustomItemConfig() {
@@ -193,8 +213,12 @@ Action OnPlayerLoadoutUpdated(UserMsg msg_id, BfRead msg, const int[] players,
 	int client = msg.ReadByte();
 	int playerClass = view_as<int>(TF2_GetPlayerClass(client));
 	
-	// TODO reapply items
-	#pragma unused playerClass
+	// TODO proper item persistence - this just uses the old equipment apply method
+	for (int i; i < NUM_ITEMS; i++) {
+		if (g_CurrentLoadout[client][playerClass][i][0]) {
+			LookupAndEquipItem(client, g_CurrentLoadout[client][playerClass][i]);
+		}
+	}
 }
 
 /**
@@ -207,24 +231,22 @@ bool SetClientCustomLoadoutItem(int client, const char[] itemuid) {
 	int position[NUM_PLAYER_CLASSES];
 	s_EquipLoadoutPosition.GetArray(itemuid, position, sizeof(position));
 	if (0 <= position[playerClass] < NUM_ITEMS) {
-		strcopy(g_CurrentLoadout[client][position[playerClass]], sizeof(g_CurrentLoadout[][]),
-				itemuid);
+		strcopy(g_CurrentLoadout[client][playerClass][position[playerClass]],
+				sizeof(g_CurrentLoadout[][][]), itemuid);
 	} else {
 		return false;
 	}
 	
 	if (!IsPlayerInRespawnRoom(client)) {
 		// TODO: notify that the player will get the item when they resup
-		return true;
+		
 	} else {
-		// TODO respawn instead of giving the item instantly
+		// player is respawned
+		TF2_RespawnPlayer(client);
 	}
-	
-	if (!itemuid[0]) {
-		// TODO restore default item
-		return true;
-	}
-	return LookupAndEquipItem(client, itemuid);
+	// NOTE: we don't do active reequip on live players, because that's kind of a mess
+	// return LookupAndEquipItem(client, itemuid);
+	return true;
 }
 
 bool LookupAndEquipItem(int client, const char[] itemuid) {
@@ -308,6 +330,14 @@ void EquipCustomItem(int client, KeyValues customItemDefinition) {
 	
 	// create our item
 	int itemEntity = TF2_CreateItem(itemdef, itemClass);
+	
+	if (!IsFakeClient(client)) {
+		// prevent item from being thrown in resupply
+		int accountid = GetSteamAccountID(client);
+		if (accountid) {
+			SetEntProp(itemEntity, Prop_Send, "m_iAccountID", accountid);
+		}
+	}
 	
 	// TODO: implement a version that nullifies runtime attributes to their defaults
 	bool bKeepStaticAttrs = !!customItemDefinition.GetNum("keep_static_attrs", true);

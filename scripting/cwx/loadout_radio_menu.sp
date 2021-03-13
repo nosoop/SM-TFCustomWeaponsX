@@ -96,7 +96,7 @@ void BuildEquipMenu() {
 	s_EquipMenu = new Menu(OnEquipMenuEvent, MENU_ACTIONS_ALL);
 	s_EquipMenu.ExitBackButton = true;
 	
-	s_EquipMenu.AddItem("", "[Unequip custom weapon]");
+	s_EquipMenu.AddItem("", "[No custom item]");
 	
 	do {
 		// iterate over subsections and add name / uid pair to menu
@@ -246,8 +246,26 @@ int OnEquipMenuEvent(Menu menu, MenuAction action, int param1, int param2) {
 		 * Renders the custom item name.
 		 */
 		case MenuAction_DisplayItem: {
-			// TODO: use QuickSwitchEquipped for active item
+			int client = param1;
+			int position = param2;
+			
 			// TODO: support localization of item names
+			char uid[MAX_ITEM_IDENTIFIER_LENGTH], itemName[MAX_ITEM_NAME_LENGTH];
+			menu.GetItem(position, uid, sizeof(uid), _, itemName, sizeof(itemName));
+			
+			int menuClass = g_iPlayerClassInMenu[client];
+			int menuSlot = g_iPlayerSlotInMenu[client];
+			
+			bool equipped = StrEqual(g_CurrentLoadout[client][menuClass][menuSlot], uid);
+			
+			SetGlobalTransTarget(client);
+			
+			if (equipped) {
+				Format(itemName, sizeof(itemName), "%s %t", itemName, "QuickSwitchEquipped");
+				SetGlobalTransTarget(LANG_SERVER);
+				
+				return RedrawMenuItem(itemName);
+			}
 		}
 		
 		/**
