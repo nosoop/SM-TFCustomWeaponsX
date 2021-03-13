@@ -8,6 +8,7 @@
 
 #include <tf2wearables>
 #include <tf_econ_data>
+#include <stocksoup/convars>
 #include <stocksoup/math>
 #include <stocksoup/tf/econ>
 #include <stocksoup/tf/entity_prop_stocks>
@@ -75,6 +76,8 @@ public void OnPluginStart() {
 	
 	
 	HookUserMessage(GetUserMessageId("PlayerLoadoutUpdated"), OnPlayerLoadoutUpdated);
+	
+	CreateVersionConVar("cwx_version", "Custom Weapons X version.");
 	
 	RegAdminCmd("sm_cwx", DisplayItems, ADMFLAG_ROOT);
 	RegAdminCmd("sm_cwx_equip", EquipItemCmd, ADMFLAG_ROOT);
