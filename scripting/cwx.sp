@@ -22,7 +22,7 @@ public Plugin myinfo = {
 	name = "[TF2] Custom Weapons X",
 	author = "nosoop",
 	description = "Allows server operators to design their own weapons.",
-	version = "X.0.3",
+	version = "X.0.4",
 	url = "https://github.com/nosoop/SM-TFCustomWeaponsX"
 }
 
@@ -50,7 +50,6 @@ char g_CurrentLoadout[MAXPLAYERS + 1][NUM_PLAYER_CLASSES][NUM_ITEMS][MAX_ITEM_ID
 int g_CurrentLoadoutEntity[MAXPLAYERS + 1][NUM_PLAYER_CLASSES][NUM_ITEMS];
 
 KeyValues g_CustomItemConfig;
-Handle g_SDKCallWeaponSwitch;
 
 StringMap s_EquipLoadoutPosition;
 
@@ -64,23 +63,7 @@ public void OnPluginStart() {
 	LoadTranslations("cwx.phrases");
 	LoadTranslations("common.phrases");
 	
-	Handle hGameConf = LoadGameConfigFile("sdkhooks.games");
-	if (!hGameConf) {
-		SetFailState("Failed to load gamedata (sdkhooks.games).");
-	}
-	
-	StartPrepSDKCall(SDKCall_Player);
-	PrepSDKCall_SetFromConf(hGameConf, SDKConf_Virtual, "Weapon_Switch");
-	PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer);
-	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);
-	g_SDKCallWeaponSwitch = EndPrepSDKCall();
-	if (!g_SDKCallWeaponSwitch) {
-		SetFailState("Could not initialize call for CTFPlayer::Weapon_Switch");
-	}
-	
-	delete hGameConf;
-	
-	hGameConf = LoadGameConfigFile("tf2.custom_weapons_x");
+	Handle hGameConf = LoadGameConfigFile("tf2.custom_weapons_x");
 	if (!hGameConf) {
 		SetFailState("Failed to load gamedata (tf2.custom_weapons_x).");
 	}
