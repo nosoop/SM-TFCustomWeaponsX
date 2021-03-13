@@ -4,6 +4,8 @@
 
 A new iteration of Custom Weapons.
 
+This was not a sponsored project.
+
 ## Features
 
 Same as previous iterations of Custom Weapons:
