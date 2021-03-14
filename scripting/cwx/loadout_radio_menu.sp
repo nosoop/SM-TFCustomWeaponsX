@@ -63,6 +63,26 @@ Action DisplayItems(int client, int argc) {
 }
 
 /**
+ * Command listener callback to display items to a player.
+ * This is a compatibility shim; this only displays the CWX menu if CW3 isn't running.
+ */
+Action DisplayItemsCompat(int client, const char[] command, int argc) {
+	// allow CW3 to display if it's loaded in
+	if (FindPluginByFile("cw3.smx")) {
+		return Plugin_Continue;
+	}
+	
+	if (!CheckCommandAccess(client, "sm_cwx", 0)) {
+		ReplyToCommand(client, "[SM] %t.", "No Access");
+		return Plugin_Stop;
+	}
+	
+	// otherwise show the menu for CWX
+	DisplayItems(client, argc);
+	return Plugin_Stop;
+}
+
+/**
  * Initializes our loadout slot selection menu.
  * 
  * This must be called after all plugins are loaded, since we depend on Econ Data.

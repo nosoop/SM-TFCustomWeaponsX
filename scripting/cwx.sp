@@ -63,6 +63,7 @@ Cookie g_ItemPersistCookies[NUM_PLAYER_CLASSES][NUM_ITEMS];
 public void OnPluginStart() {
 	LoadTranslations("cwx.phrases");
 	LoadTranslations("common.phrases");
+	LoadTranslations("core.phrases");
 	
 	Handle hGameConf = LoadGameConfigFile("tf2.custom_weapons_x");
 	if (!hGameConf) {
@@ -79,11 +80,16 @@ public void OnPluginStart() {
 	
 	CreateVersionConVar("cwx_version", "Custom Weapons X version.");
 	
-	RegAdminCmd("sm_cwx", DisplayItems, ADMFLAG_ROOT);
 	RegAdminCmd("sm_cwx_equip", EquipItemCmd, ADMFLAG_ROOT);
 	RegAdminCmd("sm_cwx_equip_target", EquipItemCmdTarget, ADMFLAG_ROOT);
 	
 	RegAdminCmd("sm_cwx_export", ExportActiveWeapon, ADMFLAG_ROOT);
+	
+	// player commands
+	RegAdminCmd("sm_cwx", DisplayItems, 0);
+	AddCommandListener(DisplayItemsCompat, "sm_c");
+	AddCommandListener(DisplayItemsCompat, "sm_cus");
+	AddCommandListener(DisplayItemsCompat, "sm_custom");
 	
 	// TODO: I'd like to use a separate, independent database for this
 	// but leveraging the cookie system is easier for now
