@@ -8,6 +8,8 @@ plugins = [
 # files to copy to builddir, relative to root
 # plugin names from previous list will be copied automatically
 copy_files = [
+	"configs/cwx/example_items.txt",
+	
 	"gamedata/tf2.custom_weapons_x.txt",
 	
 	"scripting/cwx/item_entity.sp",
