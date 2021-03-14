@@ -270,12 +270,19 @@ Action OnPlayerLoadoutUpdated(UserMsg msg_id, BfRead msg, const int[] players,
 			continue;
 		}
 		
-		// equip our item if it isn't already equipped
-		if (!IsValidEntity(g_CurrentLoadoutEntity[client][playerClass][i])) {
+		// equip our item if it isn't already equipped, or if it's being killed
+		// the latter applies to items that are normally invalid for the class
+		int currentLoadoutItem = g_CurrentLoadoutEntity[client][playerClass][i];
+		if (!IsValidEntity(currentLoadoutItem)
+				|| GetEntityFlags(currentLoadoutItem) & FL_KILLME) {
 			int entity = LookupAndEquipItem(client, g_CurrentLoadout[client][playerClass][i]);
-			g_CurrentLoadoutEntity[client][playerClass][i] = EntIndexToEntRef(entity);
+			g_CurrentLoadoutEntity[client][playerClass][i] = IsValidEntity(entity)?
+					EntIndexToEntRef(entity) : INVALID_ENT_REFERENCE;
 		}
 	}
+	
+	// TODO: switch to the correct slot if we're not holding anything
+	// as is the case again, this happens on non-valid-for-class items
 }
 
 /**
@@ -283,6 +290,7 @@ Action OnPlayerLoadoutUpdated(UserMsg msg_id, BfRead msg, const int[] players,
  * inventory item.  This prevents our custom item from being invalidated when touch resupply.
  */
 MRESReturn OnGetLoadoutItemPost(int client, Handle hReturn, Handle hParams) {
+	// TODO: work around invalid class items being invalidated
 	int playerClass = DHookGetParam(hParams, 1);
 	int loadoutSlot = DHookGetParam(hParams, 2);
 	
@@ -476,7 +484,13 @@ int EquipCustomItem(int client, KeyValues customItemDefinition) {
 	
 	// we didn't remove a weapon by its weapon slot; remove item based on loadout slot
 	if (!bRemovedWeaponInSlot) {
-		int loadoutSlot = TF2Econ_GetItemLoadoutSlot(itemdef, TF2_GetPlayerClass(client));
+		char uid[MAX_ITEM_IDENTIFIER_LENGTH];
+		customItemDefinition.GetSectionName(uid, sizeof(uid));
+		
+		int position[NUM_PLAYER_CLASSES];
+		s_EquipLoadoutPosition.GetArray(uid, position, sizeof(position));
+		
+		int loadoutSlot = position[TF2_GetPlayerClass(client)];
 		if (loadoutSlot == -1) {
 			loadoutSlot = TF2Econ_GetItemDefaultLoadoutSlot(itemdef);
 			if (loadoutSlot == -1) {
@@ -551,6 +565,26 @@ static void ComputeEquipSlotPosition() {
 		char inheritFromItem[128];
 		
 		g_CustomItemConfig.GetSectionName(uid, sizeof(uid));
+		
+		if (g_CustomItemConfig.JumpToKey("used_by_classes")) {
+			char playerClassNames[][] = {
+					"", "scout", "sniper", "soldier", "demoman",
+					"medic", "heavy", "pyro", "spy", "engineer"
+			};
+			
+			int classLoadoutPosition[NUM_PLAYER_CLASSES];
+			for (TFClassType i = TFClass_Scout; i <= TFClass_Engineer; i++) {
+				char slotName[16];
+				g_CustomItemConfig.GetString(playerClassNames[i], slotName, sizeof(slotName));
+				classLoadoutPosition[i] = TF2Econ_TranslateLoadoutSlotNameToIndex(slotName);
+			}
+			
+			s_EquipLoadoutPosition.SetArray(uid,
+					classLoadoutPosition, sizeof(classLoadoutPosition));
+			
+			g_CustomItemConfig.GoBack();
+			continue;
+		}
 		
 		int itemdef = TF_ITEMDEF_DEFAULT;
 		if (g_CustomItemConfig.GetString("inherits", inheritFromItem, sizeof(inheritFromItem))) {
