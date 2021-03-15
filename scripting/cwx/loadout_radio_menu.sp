@@ -109,14 +109,15 @@ void BuildLoadoutSlotMenu() {
 void BuildEquipMenu() {
 	delete s_EquipMenu;
 	
-	if (!g_CustomItemConfig.GotoFirstSubKey()) {
-		return;
-	}
-	
 	s_EquipMenu = new Menu(OnEquipMenuEvent, MENU_ACTIONS_ALL);
 	s_EquipMenu.ExitBackButton = true;
 	
 	s_EquipMenu.AddItem("", "[No custom item]");
+	
+	if (!g_CustomItemConfig.GotoFirstSubKey()) {
+		LogMessage("No custom items available; menu will be empty.");
+		return;
+	}
 	
 	do {
 		// iterate over subsections and add name / uid pair to menu
