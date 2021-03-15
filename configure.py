@@ -12,6 +12,7 @@ copy_files = [
 	
 	"gamedata/tf2.custom_weapons_x.txt",
 	
+	"scripting/cwx/item_config.sp",
 	"scripting/cwx/item_entity.sp",
 	"scripting/cwx/item_export.sp",
 	"scripting/cwx/loadout_radio_menu.sp",
