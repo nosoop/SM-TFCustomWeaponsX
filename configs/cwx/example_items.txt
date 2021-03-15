@@ -46,4 +46,16 @@
 			"clientmodel override"						"models/weapons/c_models/c_firkin_flamer/c_firkin_flamer.mdl"
 		}
 	}
+	"{e1bc546e-b0b7-41c5-bc5e-8257406d575c}"
+	{
+		// here's a condensed example
+		"name"			"The 'Grenade Launcher' Launcher"
+		"inherits"		"TF_WEAPON_GRENADELAUNCHER"
+		"attributes_game"
+		{
+			// string attributes work too, as long as the client doesn't read them
+			// you can't use things like "custom name attr"
+			"custom projectile model"					"models/weapons/c_models/c_grenadelauncher/c_grenadelauncher.mdl"
+		}
+	}
 }
