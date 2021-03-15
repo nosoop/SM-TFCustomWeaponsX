@@ -11,7 +11,8 @@ This was not a sponsored project.
 Same as previous iterations of Custom Weapons:
 
 - A text-based configuration format for server operators to create new items with.
-- A (newly) localized menu system for players to build their loadouts.
+- A (newly localized) menu system for players to build their loadouts.
+- Support for equipping cosmetics.
 
 New to CWX:
 
@@ -31,11 +32,16 @@ a whole class of related bugs and crummy workarounds.
   - Requires the string attributes pre-release!  (1.7.0)
 - [TF2 Custom Attributes](https://github.com/nosoop/SM-TFCustAttr)
 - [TF2Utils](https://github.com/nosoop/SM-TFUtils)
-- [DHooks2](https://github.com/peace-maker/DHooks2/)
+- [DHooks2](https://github.com/peace-maker/DHooks2)
 
 ### Installation
 
-Download the release `package.zip` and unpack into your SourceMod directory.
+Download the `package.zip` from [the releases section][] and unpack into your SourceMod
+directory.
+
+This plugin can run alongside CW3, other than conflicting when weapons are applied.
+
+[the releases section]: https://github.com/nosoop/SM-TFCustomWeaponsX/releases
 
 ### Building
 
