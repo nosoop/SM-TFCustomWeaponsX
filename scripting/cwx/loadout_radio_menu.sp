@@ -114,22 +114,17 @@ void BuildEquipMenu() {
 	
 	s_EquipMenu.AddItem("", "[No custom item]");
 	
-	if (!g_CustomItemConfig.GotoFirstSubKey()) {
-		LogMessage("No custom items available; menu will be empty.");
-		return;
-	}
+	char uid[MAX_ITEM_IDENTIFIER_LENGTH];
 	
-	do {
-		// iterate over subsections and add name / uid pair to menu
-		char uid[MAX_ITEM_IDENTIFIER_LENGTH];
-		char name[128];
+	StringMapSnapshot itemList = g_CustomItems.Snapshot();
+	for (int i; i < itemList.Length; i++) {
+		itemList.GetKey(i, uid, sizeof(uid));
 		
-		g_CustomItemConfig.GetSectionName(uid, sizeof(uid));
-		g_CustomItemConfig.GetString("name", name, sizeof(name));
+		CustomItemDefinition item;
+		g_CustomItems.GetArray(uid, item, sizeof(item));
 		
-		s_EquipMenu.AddItem(uid, name);
-	} while (g_CustomItemConfig.GotoNextKey());
-	g_CustomItemConfig.Rewind();
+		s_EquipMenu.AddItem(uid, item.displayName);
+	}
 }
 
 /**
@@ -137,11 +132,11 @@ void BuildEquipMenu() {
  */
 static bool ItemVisibleInEquipMenu(int client, const char[] uid) {
 	TFClassType playerClass = TF2_GetPlayerClass(client);
-	int position[NUM_PLAYER_CLASSES];
 	
 	// not visible for current submenu
-	s_EquipLoadoutPosition.GetArray(uid, position, sizeof(position));
-	if (position[playerClass] != g_iPlayerSlotInMenu[client]) {
+	CustomItemDefinition item;
+	if (!g_CustomItems.GetArray(uid, item, sizeof(item))
+			|| item.loadoutPosition[playerClass] != g_iPlayerSlotInMenu[client]) {
 		return false;
 	}
 	

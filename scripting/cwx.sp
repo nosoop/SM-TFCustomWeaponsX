@@ -23,7 +23,7 @@ public Plugin myinfo = {
 	name = "[TF2] Custom Weapons X",
 	author = "nosoop",
 	description = "Allows server operators to design their own weapons.",
-	version = "X.0.5",
+	version = "X.0.6",
 	url = "https://github.com/nosoop/SM-TFCustomWeaponsX"
 }
 
@@ -258,10 +258,12 @@ bool SetClientCustomLoadoutItem(int client, const char[] itemuid) {
 	// TODO: write item to the class that the player opened the menu with
 	int playerClass = view_as<int>(TF2_GetPlayerClass(client));
 	
-	int position[NUM_PLAYER_CLASSES];
-	s_EquipLoadoutPosition.GetArray(itemuid, position, sizeof(position));
+	CustomItemDefinition item;
+	if (!g_CustomItems.GetArray(itemuid, item, sizeof(item))) {
+		return false;
+	}
 	
-	int itemSlot = position[playerClass];
+	int itemSlot = item.loadoutPosition[playerClass];
 	if (0 <= itemSlot < NUM_ITEMS) {
 		strcopy(g_CurrentLoadout[client][playerClass][itemSlot],
 				sizeof(g_CurrentLoadout[][][]), itemuid);
@@ -300,9 +302,10 @@ bool CanPlayerEquipItem(int client, const char[] uid) {
 	// TODO hide based on admin overrides
 	
 	TFClassType playerClass = TF2_GetPlayerClass(client);
-	int position[NUM_PLAYER_CLASSES];
-	return s_EquipLoadoutPosition.GetArray(uid, position, sizeof(position))
-			&& position[playerClass] != -1;
+	
+	CustomItemDefinition item;
+	return g_CustomItems.GetArray(uid, item, sizeof(item))
+			&& item.loadoutPosition[playerClass] != -1;
 }
 
 static bool IsPlayerInRespawnRoom(int client) {

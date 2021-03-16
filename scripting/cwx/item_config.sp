@@ -2,17 +2,42 @@
  * Contains functionality for the item config.
  */
 
-KeyValues g_CustomItemConfig;
+enum struct CustomItemDefinition {
+	KeyValues source;
+	
+	int defindex;
+	char displayName[128];
+	char className[128];
+	int loadoutPosition[NUM_PLAYER_CLASSES];
+	
+	KeyValues nativeAttributes;
+	KeyValues customAttributes;
+	
+	bool bKeepStaticAttributes;
+	
+	void Init() {
+		this.defindex = TF_ITEMDEF_DEFAULT;
+		this.source = new KeyValues("Item");
+		for (int i; i < sizeof(CustomItemDefinition::loadoutPosition); i++) {
+			this.loadoutPosition[i] = -1;
+		}
+	}
+	
+	void Destroy() {
+		delete this.source;
+		delete this.nativeAttributes;
+		delete this.customAttributes;
+	}
+}
 
-StringMap s_EquipLoadoutPosition;
+StringMap g_CustomItems;
 
 void LoadCustomItemConfig() {
-	delete g_CustomItemConfig;
-	g_CustomItemConfig = new KeyValues("Items");
+	KeyValues itemSchema = new KeyValues("Items");
 	
 	char schemaPath[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, schemaPath, sizeof(schemaPath), "configs/%s", "cwx_schema.txt");
-	g_CustomItemConfig.ImportFromFile(schemaPath);
+	itemSchema.ImportFromFile(schemaPath);
 	
 	char schemaDir[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, schemaDir, sizeof(schemaDir), "configs/%s", "cwx/");
@@ -37,14 +62,14 @@ void LoadCustomItemConfig() {
 			do {
 				importKV.GetSectionName(uid, sizeof(uid));
 				if (importKV.GetDataType(NULL_STRING) == KvData_None) {
-					if (g_CustomItemConfig.JumpToKey(uid)) {
+					if (itemSchema.JumpToKey(uid)) {
 						LogMessage("Item uid %s already exists in schema, ignoring entry in %s",
 								uid, schemaRelPath);
 					} else {
-						g_CustomItemConfig.JumpToKey(uid, true);
-						g_CustomItemConfig.Import(importKV);
+						itemSchema.JumpToKey(uid, true);
+						itemSchema.Import(importKV);
 					}
-					g_CustomItemConfig.GoBack();
+					itemSchema.GoBack();
 				}
 			} while (importKV.GotoNextKey(false));
 			importKV.GoBack();
@@ -53,102 +78,149 @@ void LoadCustomItemConfig() {
 		}
 	}
 	
-	// TODO parse into enum structure
-	
 	// TODO add a forward that allows other plugins to hook registered attribute names and
 	// precache any resources
 	
-	BuildEquipMenu();
-	ComputeEquipSlotPosition();
+	if (g_CustomItems) {
+		char uid[MAX_ITEM_IDENTIFIER_LENGTH];
+		
+		StringMapSnapshot itemList = g_CustomItems.Snapshot();
+		for (int i; i < itemList.Length; i++) {
+			itemList.GetKey(i, uid, sizeof(uid));
+			
+			CustomItemDefinition item;
+			g_CustomItems.GetArray(uid, item, sizeof(item));
+			
+			item.Destroy();
+		}
+		delete itemList;
+	}
+	
+	delete g_CustomItems;
+	g_CustomItems = new StringMap();
+	
+	if (itemSchema.GotoFirstSubKey()) {
+		// we have items, go parse 'em
+		do {
+			CreateItemFromSection(itemSchema);
+		} while (itemSchema.GotoNextKey());
+		itemSchema.GoBack();
+		
+		BuildEquipMenu();
+	} else {
+		LogError("No custom items available.");
+	}
+	delete itemSchema;
 	
 	// TODO process other config logic here.
+}
+
+bool CreateItemFromSection(KeyValues config) {
+	CustomItemDefinition item;
+	item.Init();
+	
+	item.source.Import(config);
+	
+	char uid[MAX_ITEM_IDENTIFIER_LENGTH];
+	config.GetSectionName(uid, sizeof(uid));
+	
+	config.GetString("name", item.displayName, sizeof(item.displayName));
+	
+	char inheritFromItem[64];
+	config.GetString("inherits", inheritFromItem, sizeof(inheritFromItem));
+	int inheritDef = FindItemByName(inheritFromItem);
+	
+	// populate values for the 'inherit' entry, if any
+	if (inheritDef != TF_ITEMDEF_DEFAULT) {
+		item.defindex = inheritDef;
+		TF2Econ_GetItemClassName(inheritDef, item.className, sizeof(item.className));
+	} else if (inheritFromItem[0]) {
+		LogError("Item uid '%s' inherits from unknown item '%s'", uid, inheritFromItem);
+		item.Destroy();
+		return false;
+	}
+	
+	// apply inherited overrides
+	item.defindex = config.GetNum("defindex", item.defindex);
+	config.GetString("item_class", item.className, sizeof(item.className), item.className);
+	
+	if (!item.className[0]) {
+		LogError("Item uid '%s' has no classname", uid);
+		item.Destroy();
+		return false;
+	}
+	
+	if (item.defindex == TF_ITEMDEF_DEFAULT) {
+		LogError("Item uid '%s' has no item definition", uid);
+		item.Destroy();
+		return false;
+	}
+	
+	// compute slots based on inherited itemdef if we have it, else defindex
+	ComputeEquipSlotPosition(config,
+			inheritDef == TF_ITEMDEF_DEFAULT? item.defindex : inheritDef, item.loadoutPosition);
+	
+	config.GetString("item_class", item.className, sizeof(item.className), item.className);
+	
+	item.bKeepStaticAttributes = !!config.GetNum("keep_static_attrs", true);
+	
+	if (config.JumpToKey("attributes_game")) {
+		item.nativeAttributes = new KeyValues("attributes_game");
+		item.nativeAttributes.Import(config);
+		config.GoBack();
+	}
+	
+	if (config.JumpToKey("attributes_custom")) {
+		item.customAttributes = new KeyValues("attributes_custom");
+		item.customAttributes.Import(config);
+		config.GoBack();
+	}
+	
+	g_CustomItems.SetArray(uid, item, sizeof(item));
+	return true;
 }
 
 /**
  * Builds the UID-to-loadout-position mapping, so the plugin knows which weapons can be rendered
  * in which menus.
  */
-static void ComputeEquipSlotPosition() {
-	delete s_EquipLoadoutPosition;
+static bool ComputeEquipSlotPosition(KeyValues kv, int itemdef,
+		int loadoutPosition[NUM_PLAYER_CLASSES]) {
+	char uid[MAX_ITEM_IDENTIFIER_LENGTH];
+	kv.GetSectionName(uid, sizeof(uid));
 	
-	if (!g_CustomItemConfig.GotoFirstSubKey()) {
-		return;
+	if (kv.JumpToKey("used_by_classes")) {
+		char playerClassNames[][] = {
+				"", "scout", "sniper", "soldier", "demoman",
+				"medic", "heavy", "pyro", "spy", "engineer"
+		};
+		
+		for (TFClassType i = TFClass_Scout; i <= TFClass_Engineer; i++) {
+			char slotName[16];
+			kv.GetString(playerClassNames[i], slotName, sizeof(slotName));
+			loadoutPosition[i] = TF2Econ_TranslateLoadoutSlotNameToIndex(slotName);
+		}
+		
+		kv.GoBack();
+		return true;
 	}
 	
-	s_EquipLoadoutPosition = new StringMap();
-	do {
-		// iterate over subsections and add name / uid pair to menu
-		char uid[MAX_ITEM_IDENTIFIER_LENGTH];
-		char inheritFromItem[128];
-		
-		g_CustomItemConfig.GetSectionName(uid, sizeof(uid));
-		
-		if (g_CustomItemConfig.JumpToKey("used_by_classes")) {
-			char playerClassNames[][] = {
-					"", "scout", "sniper", "soldier", "demoman",
-					"medic", "heavy", "pyro", "spy", "engineer"
-			};
-			
-			int classLoadoutPosition[NUM_PLAYER_CLASSES];
-			for (TFClassType i = TFClass_Scout; i <= TFClass_Engineer; i++) {
-				char slotName[16];
-				g_CustomItemConfig.GetString(playerClassNames[i], slotName, sizeof(slotName));
-				classLoadoutPosition[i] = TF2Econ_TranslateLoadoutSlotNameToIndex(slotName);
-			}
-			
-			s_EquipLoadoutPosition.SetArray(uid,
-					classLoadoutPosition, sizeof(classLoadoutPosition));
-			
-			g_CustomItemConfig.GoBack();
-			continue;
-		}
-		
-		int itemdef = TF_ITEMDEF_DEFAULT;
-		if (g_CustomItemConfig.GetString("inherits", inheritFromItem, sizeof(inheritFromItem))) {
-			itemdef = FindItemByName(inheritFromItem);
-		}
-		
-		if (itemdef == TF_ITEMDEF_DEFAULT) {
-			// we don't have an inherits, so assume the item is based on defindex
-			itemdef = g_CustomItemConfig.GetNum("defindex", TF_ITEMDEF_DEFAULT);
-		}
-		
-		if (!TF2Econ_IsValidItemDefinition(itemdef)) {
-			// TODO: implement schema section for loadout slot
-			LogError("Item uid %s is missing a valid item definition index or 'inherits' item "
-					... "name is invalid", uid);
-			continue;
-		}
-		
-		int classLoadoutPosition[NUM_PLAYER_CLASSES];
-		for (TFClassType i = TFClass_Scout; i <= TFClass_Engineer; i++) {
-			classLoadoutPosition[i] = TF2Econ_GetItemLoadoutSlot(itemdef, i);
-		}
-		
-		s_EquipLoadoutPosition.SetArray(uid,
-				classLoadoutPosition, sizeof(classLoadoutPosition));
-	} while (g_CustomItemConfig.GotoNextKey());
-	g_CustomItemConfig.Rewind();
+	if (!TF2Econ_IsValidItemDefinition(itemdef)) {
+		LogError("Item uid '%s' is missing a valid item definition index or 'inherits' item "
+				... "name is invalid", uid);
+		return false;
+	}
+	
+	for (TFClassType i = TFClass_Scout; i <= TFClass_Engineer; i++) {
+		loadoutPosition[i] = TF2Econ_GetItemLoadoutSlot(itemdef, i);
+	}
+	return true;
 }
 
 int LookupAndEquipItem(int client, const char[] itemuid) {
-	g_CustomItemConfig.Rewind();
-	if (g_CustomItemConfig.JumpToKey(itemuid)) {
-		return EquipCustomItem(client, g_CustomItemConfig);
-		
-		// TODO store the uid as part of our active loadout for persistence
-		// 
-		// problem is, we don't know which slot to install it to based on classname alone,
-		// so we need to either:
-		// - generate the item and store its slot post-generation (we should only need to do this once per uid)
-		// - infer based on "inherits" (whose presence isn't guaranteed, leading to...)
-		// - manually define the loadout slot (icky. don't fucking trust config writers to get
-		//   this correct, ever.)
-		// 
-		// valve manually defines loadout slots in their schema.
-		// 
-		// I think inherits + manual definition fallback is the way to go, just so we don't have
-		// to deal with runtime shenanigans.
+	CustomItemDefinition item;
+	if (g_CustomItems.GetArray(itemuid, item, sizeof(item))) {
+		return EquipCustomItem(client, item);
 	}
 	return INVALID_ENT_REFERENCE;
 }
@@ -157,60 +229,15 @@ int LookupAndEquipItem(int client, const char[] itemuid) {
  * Equips an item from the given KeyValues structure.
  * Returns the item entity if successful.
  */
-int EquipCustomItem(int client, KeyValues customItemDefinition) {
-	char inheritFromItem[64];
-	customItemDefinition.GetString("inherits", inheritFromItem, sizeof(inheritFromItem));
-	int inheritDef = FindItemByName(inheritFromItem);
-	
+int EquipCustomItem(int client, const CustomItemDefinition item) {
 	char itemClass[128];
-	int itemdef = TF_ITEMDEF_DEFAULT;
 	
-	// populate values for the 'inherit' entry, if any
-	if (inheritDef != TF_ITEMDEF_DEFAULT) {
-		itemdef = inheritDef;
-		TF2Econ_GetItemClassName(inheritDef, itemClass, sizeof(itemClass));
-	} else if (inheritFromItem[0]) {
-		// we have an 'inherit' entry, but it doesn't point to a valid item...
-		// drop everything and walk away.
-		char customItemName[64], sectionName[64];
-		customItemDefinition.GetString("name", customItemName, sizeof(customItemName),
-				"(none)");
-		customItemDefinition.GetSectionName(sectionName, sizeof(sectionName));
-		
-		LogError("Custom item %s (uid %s) inherits from unknown item '%s'", customItemName,
-				sectionName, inheritFromItem);
-		return INVALID_ENT_REFERENCE;
-	}
-	
-	// apply inherited overrides
-	itemdef = customItemDefinition.GetNum("defindex", itemdef);
-	customItemDefinition.GetString("item_class", itemClass, sizeof(itemClass), itemClass);
-	
-	if (!itemClass[0]) {
-		char customItemName[64], sectionName[64];
-		customItemDefinition.GetString("name", customItemName, sizeof(customItemName),
-				"(none)");
-		customItemDefinition.GetSectionName(sectionName, sizeof(sectionName));
-		LogError("Custom item %s (uid %s) is missing classname", customItemName, sectionName);
-		return INVALID_ENT_REFERENCE;
-	}
-	
-	if (itemdef == TF_ITEMDEF_DEFAULT) {
-		char customItemName[64], sectionName[64];
-		customItemDefinition.GetString("name", customItemName, sizeof(customItemName),
-				"(none)");
-		customItemDefinition.GetSectionName(sectionName, sizeof(sectionName));
-		
-		LogError("Custom item %s (uid %s) was not defined with a valid definition index.",
-				customItemName, sectionName);
-		return INVALID_ENT_REFERENCE;
-	}
-	
+	strcopy(itemClass, sizeof(itemClass), item.className);
 	TF2Econ_TranslateWeaponEntForClass(itemClass, sizeof(itemClass),
 			TF2_GetPlayerClass(client));
 	
 	// create our item
-	int itemEntity = TF2_CreateItem(itemdef, itemClass);
+	int itemEntity = TF2_CreateItem(item.defindex, itemClass);
 	
 	if (!IsFakeClient(client)) {
 		// prevent item from being thrown in resupply
@@ -221,32 +248,30 @@ int EquipCustomItem(int client, KeyValues customItemDefinition) {
 	}
 	
 	// TODO: implement a version that nullifies runtime attributes to their defaults
-	bool bKeepStaticAttrs = !!customItemDefinition.GetNum("keep_static_attrs", true);
-	SetEntProp(itemEntity, Prop_Send, "m_bOnlyIterateItemViewAttributes", !bKeepStaticAttrs);
+	SetEntProp(itemEntity, Prop_Send, "m_bOnlyIterateItemViewAttributes",
+			!item.bKeepStaticAttributes);
 	
 	// apply game attributes
-	if (customItemDefinition.JumpToKey("attributes_game")) {
-		if (customItemDefinition.GotoFirstSubKey(false)) {
+	if (item.nativeAttributes) {
+		if (item.nativeAttributes.GotoFirstSubKey(false)) {
 			do {
 				char key[256], value[256];
 				
 				// TODO: support multiline KeyValues
-				// keyvalues are case-insensitive, so section name + value should sidestep that
-				customItemDefinition.GetSectionName(key, sizeof(key));
-				customItemDefinition.GetString(NULL_STRING, value, sizeof(value));
+				// keyvalues are case-insensitive, so section name + value would sidestep that
+				item.nativeAttributes.GetSectionName(key, sizeof(key));
+				item.nativeAttributes.GetString(NULL_STRING, value, sizeof(value));
 				
 				// this *almost* feels illegal.
 				TF2Attrib_SetFromStringValue(itemEntity, key, value);
-			} while (customItemDefinition.GotoNextKey(false));
-			customItemDefinition.GoBack();
+			} while (item.nativeAttributes.GotoNextKey(false));
+			item.nativeAttributes.GoBack();
 		}
-		customItemDefinition.GoBack();
 	}
 	
 	// apply attributes for Custom Attributes
-	if (customItemDefinition.JumpToKey("attributes_custom")) {
-		TF2CustAttr_UseKeyValues(itemEntity, customItemDefinition);
-		customItemDefinition.GoBack();
+	if (item.customAttributes) {
+		TF2CustAttr_UseKeyValues(itemEntity, item.customAttributes);
 	}
 	
 	// remove existing item(s) on player
@@ -260,15 +285,9 @@ int EquipCustomItem(int client, KeyValues customItemDefinition) {
 	
 	// we didn't remove a weapon by its weapon slot; remove item based on loadout slot
 	if (!bRemovedWeaponInSlot) {
-		char uid[MAX_ITEM_IDENTIFIER_LENGTH];
-		customItemDefinition.GetSectionName(uid, sizeof(uid));
-		
-		int position[NUM_PLAYER_CLASSES];
-		s_EquipLoadoutPosition.GetArray(uid, position, sizeof(position));
-		
-		int loadoutSlot = position[TF2_GetPlayerClass(client)];
+		int loadoutSlot = item.loadoutPosition[TF2_GetPlayerClass(client)];
 		if (loadoutSlot == -1) {
-			loadoutSlot = TF2Econ_GetItemDefaultLoadoutSlot(itemdef);
+			loadoutSlot = TF2Econ_GetItemDefaultLoadoutSlot(item.defindex);
 			if (loadoutSlot == -1) {
 				return INVALID_ENT_REFERENCE;
 			}
@@ -276,7 +295,7 @@ int EquipCustomItem(int client, KeyValues customItemDefinition) {
 		
 		// HACK: remove the correct item for demoman when applying the revolver
 		if (TF2Util_IsEntityWeapon(itemEntity)
-				&& TF2Econ_GetItemLoadoutSlot(itemdef, TF2_GetPlayerClass(client)) == -1) {
+				&& TF2Econ_GetItemLoadoutSlot(item.defindex, TF2_GetPlayerClass(client)) == -1) {
 			loadoutSlot = TF2Util_GetWeaponSlot(itemEntity);
 		}
 		
