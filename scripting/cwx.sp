@@ -615,11 +615,13 @@ static void ComputeEquipSlotPosition() {
 }
 
 static bool IsPlayerInRespawnRoom(int client) {
-	float vecMins[3], vecMaxs[3], vecCenter[3];
+	float vecMins[3], vecMaxs[3], vecCenter[3], vecOrigin[3];
 	GetClientMins(client, vecMins);
 	GetClientMaxs(client, vecMaxs);
+	GetClientAbsOrigin(client, vecOrigin);
 	
 	GetCenterFromPoints(vecMins, vecMaxs, vecCenter);
+	AddVectors(vecOrigin, vecCenter, vecCenter);
 	return TF2Util_IsPointInRespawnRoom(vecCenter, client, true);
 }
 
