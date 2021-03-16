@@ -140,7 +140,7 @@ static bool ItemVisibleInEquipMenu(int client, const char[] uid) {
 		return false;
 	}
 	
-	// visible for submenu, but player can't equip it
+	// visible for submenu, but player can't equip it for other reasons
 	return CanPlayerEquipItem(client, uid);
 }
 

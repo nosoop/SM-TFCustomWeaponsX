@@ -298,14 +298,24 @@ void OnClientCustomLoadoutItemModified(int client) {
 	// return LookupAndEquipItem(client, itemuid);
 }
 
+/**
+ * Returns whether or not the player can actually equip this item normally.
+ * (This does not prevent admins from forcibly applying the item to the player.)
+ */
 bool CanPlayerEquipItem(int client, const char[] uid) {
-	// TODO hide based on admin overrides
-	
 	TFClassType playerClass = TF2_GetPlayerClass(client);
 	
 	CustomItemDefinition item;
-	return g_CustomItems.GetArray(uid, item, sizeof(item))
-			&& item.loadoutPosition[playerClass] != -1;
+	if (!g_CustomItems.GetArray(uid, item, sizeof(item))) {
+		// item doesn't exist.
+		return false;
+	} else if (item.loadoutPosition[playerClass] == -1) {
+		return false;
+	} else if (item.access[0] && !CheckCommandAccess(client, item.access, 0, true)) {
+		// this item requires access
+		return false;
+	}
+	return true;
 }
 
 static bool IsPlayerInRespawnRoom(int client) {

@@ -10,6 +10,8 @@ enum struct CustomItemDefinition {
 	char className[128];
 	int loadoutPosition[NUM_PLAYER_CLASSES];
 	
+	char access[64];
+	
 	KeyValues nativeAttributes;
 	KeyValues customAttributes;
 	
@@ -163,6 +165,9 @@ bool CreateItemFromSection(KeyValues config) {
 	config.GetString("item_class", item.className, sizeof(item.className), item.className);
 	
 	item.bKeepStaticAttributes = !!config.GetNum("keep_static_attrs", true);
+	
+	// allows restricting access to the item
+	config.GetString("access", item.access, sizeof(item.access));
 	
 	if (config.JumpToKey("attributes_game")) {
 		item.nativeAttributes = new KeyValues("attributes_game");
