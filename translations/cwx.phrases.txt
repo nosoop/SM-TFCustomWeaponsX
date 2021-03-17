@@ -906,7 +906,7 @@
 		"el" "Σημειωση: Οι αλλαγεσ στον εξοπλισμο θα συμβουν με την αναβιωση."
 		"en" "Note: Loadout changes will take effect on respawn."
 		"es" "Aviso: Los cambios en el equipamiento surtirán efecto al regenerarse."
-		"fi" "HUOMAA! VARUSTELASTIMUUTOKSET VAIKUTTAVAT UUDELLEENSYNTYMISEEN"
+		"fi" "Huomaa! Varustelastimuutokset vaikuttavat uudelleensyntymiseen"
 		"fr" "Remarque : Les modifications d'équipement prendront effet à la réapparition."
 		"hu" "Megjegyzés: A felszerelés változása újraéledéskor lép érvénybe."
 		"it" "Nota: I cambi d'equipaggiamento avranno effetto al rientro in gioco."
