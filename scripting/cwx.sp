@@ -8,6 +8,7 @@
 
 #include <tf2wearables>
 #include <tf_econ_data>
+#include <stocksoup/color_literals>
 #include <stocksoup/convars>
 #include <stocksoup/math>
 #include <stocksoup/tf/econ>
@@ -287,15 +288,27 @@ void UnsetClientCustomLoadoutItem(int client, int playerClass, int itemSlot) {
 }
 
 void OnClientCustomLoadoutItemModified(int client) {
-	if (!IsPlayerInRespawnRoom(client)) {
-		// TODO: notify that the player will get the item when they resup
-		
+	if (IsPlayerInRespawnRoom(client)) {
+		// see if the player is into being respawned on loadout changes
+		QueryClientConVar(client, "tf_respawn_on_loadoutchanges", OnLoadoutRespawnPreference);
 	} else {
-		// player is respawned
-		TF2_RespawnPlayer(client);
+		PrintColoredChatEx(client, CHAT_SOURCE_SELF, COLOR_TEAM ... "%t",
+				"LoadoutChangesUpdate");
 	}
-	// NOTE: we don't do active reequip on live players, because that's kind of a mess
-	// return LookupAndEquipItem(client, itemuid);
+}
+
+void OnLoadoutRespawnPreference(QueryCookie cookie, int client, ConVarQueryResult result,
+		const char[] cvarName, const char[] cvarValue) {
+	if (result != ConVarQuery_Okay) {
+		return;
+	} else if (!StringToInt(cvarValue) || !IsPlayerInRespawnRoom(client)) {
+		// the second check for respawn room is in case we're somehow not in one between
+		// the query and the callback
+		PrintColoredChatEx(client, CHAT_SOURCE_SELF, COLOR_TEAM ... "%t",
+				"LoadoutChangesUpdate");
+		return;
+	}
+	TF2_RespawnPlayer(client);
 }
 
 /**
