@@ -120,6 +120,8 @@ public void OnAllPluginsLoaded() {
 
 public void OnMapStart() {
 	LoadCustomItemConfig();
+	
+	PrecacheMenuResources();
 }
 
 /**

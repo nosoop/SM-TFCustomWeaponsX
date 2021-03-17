@@ -2,6 +2,11 @@
  * This file deals with the radio menu-based interface for equipping weapons.
  */
 
+// Use game UI sounds for menus to provide a more TF2-sounding experience
+#define SOUND_MENU_BUTTON_CLICK "ui/buttonclick.wav"
+#define SOUND_MENU_BUTTON_CLOSE "ui/panel_close.wav"
+#define SOUND_MENU_BUTTON_EQUIP "ui/panel_open.wav"
+
 static Menu s_LoadoutSlotMenu;
 
 // Menu containing our list of items.  This is initalized once, then items are modified
@@ -83,6 +88,15 @@ Action DisplayItemsCompat(int client, const char[] command, int argc) {
 }
 
 /**
+ * Resources precached during map start.
+ */
+void PrecacheMenuResources() {
+	PrecacheSound(SOUND_MENU_BUTTON_CLICK);
+	PrecacheSound(SOUND_MENU_BUTTON_CLOSE);
+	PrecacheSound(SOUND_MENU_BUTTON_EQUIP);
+}
+
+/**
  * Initializes our loadout slot selection menu.
  * 
  * This must be called after all plugins are loaded, since we depend on Econ Data.
@@ -91,6 +105,7 @@ void BuildLoadoutSlotMenu() {
 	delete s_LoadoutSlotMenu;
 	s_LoadoutSlotMenu = new Menu(OnLoadoutSlotMenuEvent,
 			MENU_ACTIONS_DEFAULT | MenuAction_Display | MenuAction_DisplayItem);
+	s_LoadoutSlotMenu.OptionFlags |= MENUFLAG_NO_SOUND;
 	
 	for (int i; i < 3; i++) {
 		char name[32];
@@ -110,6 +125,7 @@ void BuildEquipMenu() {
 	delete s_EquipMenu;
 	
 	s_EquipMenu = new Menu(OnEquipMenuEvent, MENU_ACTIONS_ALL);
+	s_EquipMenu.OptionFlags |= MENUFLAG_NO_SOUND;
 	s_EquipMenu.ExitBackButton = true;
 	
 	s_EquipMenu.AddItem("", "[No custom item]");
@@ -178,6 +194,8 @@ int OnLoadoutSlotMenuEvent(Menu menu, MenuAction action, int param1, int param2)
 			
 			g_iPlayerSlotInMenu[client] = TF2Econ_TranslateLoadoutSlotNameToIndex(loadoutSlot);
 			s_EquipMenu.Display(client, 30);
+			
+			EmitSoundToClient(client, SOUND_MENU_BUTTON_CLICK);
 		}
 		
 		/**
@@ -197,6 +215,10 @@ int OnLoadoutSlotMenuEvent(Menu menu, MenuAction action, int param1, int param2)
 			SetGlobalTransTarget(LANG_SERVER);
 			
 			return RedrawMenuItem(loadoutSlotName);
+		}
+		case MenuAction_Cancel: {
+			int client = param1;
+			EmitSoundToClient(client, SOUND_MENU_BUTTON_CLOSE);
 		}
 	}
 	return 0;
@@ -236,6 +258,8 @@ int OnEquipMenuEvent(Menu menu, MenuAction action, int param1, int param2) {
 			
 			char uid[MAX_ITEM_IDENTIFIER_LENGTH];
 			menu.GetItem(position, uid, sizeof(uid));
+			
+			EmitSoundToClient(client, SOUND_MENU_BUTTON_EQUIP);
 			
 			// TODO: we should be making this a submenu with item description?
 			if (uid[0]) {
@@ -296,6 +320,7 @@ int OnEquipMenuEvent(Menu menu, MenuAction action, int param1, int param2) {
 			int client = param1;
 			int reason = param2;
 			
+			EmitSoundToClient(client, SOUND_MENU_BUTTON_CLOSE);
 			if (reason == MenuCancel_ExitBack) {
 				s_LoadoutSlotMenu.Display(client, 30);
 			}
