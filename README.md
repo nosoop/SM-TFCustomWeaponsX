@@ -6,6 +6,8 @@ A new iteration of Custom Weapons.
 
 This was not a sponsored project.
 
+[Discuss this plugin on AlliedModders.](https://forums.alliedmods.net/showthread.php?t=331273)
+
 ## Features
 
 Same as previous iterations of Custom Weapons:
