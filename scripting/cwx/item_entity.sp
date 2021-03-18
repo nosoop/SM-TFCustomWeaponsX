@@ -30,12 +30,12 @@ stock int TF2_CreateItem(int defindex, const char[] itemClass) {
  * Removes the given item based on its loadout slot.
  */
 bool TF2_RemoveItemByLoadoutSlot(int client, int loadoutSlot) {
-	int item = TF2_GetPlayerLoadoutSlot(client, loadoutSlot);
+	int item = TF2Util_GetPlayerLoadoutEntity(client, loadoutSlot);
 	if (!IsValidEntity(item)) {
 		return false;
 	}
 	
-	if (TF2_IsWearable(item)) {
+	if (TF2Util_IsEntityWearable(item)) {
 		TF2_RemoveWearable(client, item);
 	} else {
 		TF2_RemoveWeaponSlot(client, TF2Util_GetWeaponSlot(item));
@@ -51,7 +51,7 @@ void TF2_EquipPlayerEconItem(int client, int item) {
 	GetEntityClassname(item, weaponClass, sizeof(weaponClass));
 	
 	if (StrContains(weaponClass, "tf_wearable", false) == 0) {
-		TF2_EquipPlayerWearable(client, item);
+		TF2Util_EquipPlayerWearable(client, item);
 	} else {
 		EquipPlayerWeapon(client, item);
 		TF2_ResetWeaponAmmo(item);

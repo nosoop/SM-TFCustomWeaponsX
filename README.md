@@ -34,12 +34,12 @@ More information is provided in [the project wiki].
 
 The SourceMod plugins / extensions listed below are required for Custom Weapons X to run:
 
-- [TF2 Wearable Tools](https://github.com/nosoop/sourcemod-tf2wearables)
 - [Econ Data](https://github.com/nosoop/SM-TFEconData)
 - [TF2Attributes](https://github.com/nosoop/tf2attributes)
   - Requires the string attributes pre-release!  (1.7.0)
 - [TF2 Custom Attributes](https://github.com/nosoop/SM-TFCustAttr)
 - [TF2Utils](https://github.com/nosoop/SM-TFUtils)
+  - Requires minimum version 0.11.0.
 - [DHooks2](https://github.com/peace-maker/DHooks2)
 
 Additional software recommendations that aren't completely necessary:

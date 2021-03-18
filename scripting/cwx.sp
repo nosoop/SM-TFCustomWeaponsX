@@ -6,7 +6,6 @@
 
 #pragma newdecls required
 
-#include <tf2wearables>
 #include <tf_econ_data>
 #include <stocksoup/convars>
 #include <stocksoup/math>
@@ -31,6 +30,7 @@ public Plugin myinfo = {
 	author = "nosoop",
 	description = "Allows server operators to design their own weapons.",
 	version = "X.0.6" ... VERSION_SUFFIX,
+	version = "X.0.7" ... VERSION_SUFFIX,
 	url = "https://github.com/nosoop/SM-TFCustomWeaponsX"
 }
 
