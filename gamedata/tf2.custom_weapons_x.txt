@@ -26,6 +26,20 @@
 					}
 				}
 			}
+			"CTFPlayer::ManageRegularWeapons()"
+			{
+				"signature"		"CTFPlayer::ManageRegularWeapons()"
+				"callconv"		"thiscall"
+				"return"		"void"
+				"this"			"entity"
+				"arguments"
+				{
+					"class_data"
+					{
+						"type"	"int"
+					}
+				}
+			}
 		}
 		"Signatures"
 		{
@@ -35,6 +49,13 @@
 				"library"		"server"
 				"linux"			"@_ZN9CTFPlayer14GetLoadoutItemEiib"
 				"windows"		"\x55\x8B\xEC\x51\x53\x56\x8B\xF1\x8B\x0D\x2A\x2A\x2A\x2A\x57\x89\x75\xFC"
+			}
+			"CTFPlayer::ManageRegularWeapons()"
+			{
+				// semi-unique xref "PlayerLoadoutUpdated"
+				"library"		"server"
+				"linux"			"@_ZN9CTFPlayer20ManageRegularWeaponsEP19TFPlayerClassData_t"
+				"windows"		"\x55\x8B\xEC\x83\xEC\x6C\x53\x56\x57\x8B\xF9\xE8\x2A\x2A\x2A\x2A"
 			}
 		}
 	}

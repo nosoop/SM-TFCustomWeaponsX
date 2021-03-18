@@ -100,6 +100,13 @@ public void OnPluginStart() {
 	Handle dtGetLoadoutItem = DHookCreateFromConf(hGameConf, "CTFPlayer::GetLoadoutItem()");
 	DHookEnableDetour(dtGetLoadoutItem, true, OnGetLoadoutItemPost);
 	
+	Handle dtManageRegularWeapons = DHookCreateFromConf(hGameConf, "CTFPlayer::ManageRegularWeapons()");
+	if (!dtManageRegularWeapons) {
+		SetFailState("Failed to create detour %s", "CTFPlayer::ManageRegularWeapons()");
+	}
+	DHookEnableDetour(dtManageRegularWeapons, false, OnManageRegularWeaponsPre);
+	DHookEnableDetour(dtManageRegularWeapons, true, OnManageRegularWeaponsPost);
+	
 	delete hGameConf;
 	
 	HookEvent("player_spawn", OnPlayerSpawnPost);
@@ -363,7 +370,8 @@ MRESReturn OnGetLoadoutItemPost(int client, Handle hReturn, Handle hParams) {
 	}
 	
 	int storedItem = g_CurrentLoadout[client][playerClass][loadoutSlot].entity;
-	if (!IsValidEntity(storedItem) || !HasEntProp(storedItem, Prop_Send, "m_Item")) {
+	if (!IsValidEntity(storedItem) || GetEntityFlags(storedItem) & FL_KILLME
+			|| !HasEntProp(storedItem, Prop_Send, "m_Item")) {
 		// the loadout entity we keep track of isn't valid, so we may need to make one
 		// we expect to have to equip something new at this point
 		
@@ -392,6 +400,61 @@ MRESReturn OnGetLoadoutItemPost(int client, Handle hReturn, Handle hParams) {
 	
 	DHookSetReturn(hReturn, pStoredItemView);
 	return MRES_Supercede;
+}
+
+/**
+ * Intercept ManageRegularWeapons to trick the game into thinking the weapons we have are valid
+ * for that class, so they don't get removed.
+ */
+MRESReturn OnManageRegularWeaponsPre(int client, Handle hParams) {
+	TFClassType playerClass = TF2_GetPlayerClass(client);
+	for (int s; s < NUM_ITEMS; s++) {
+		int storedItem = g_CurrentLoadout[client][playerClass][s].entity;
+		if (!IsValidEntity(storedItem)) {
+			continue;
+		}
+		
+		int validitemdef = FindBaseItem(playerClass, s);
+		if (validitemdef == TF_ITEMDEF_DEFAULT) {
+			continue;
+		}
+		
+		// replace the itemdef and classname with ones actually valid for that class to skirt
+		// around the ValidateWeapons checks
+		char classname[64];
+		TF2Econ_GetItemClassName(validitemdef, classname, sizeof(classname));
+		
+		SetEntProp(storedItem, Prop_Send, "m_iItemDefinitionIndex", validitemdef);
+		SetEntPropString(storedItem, Prop_Data, "m_iClassname", classname);
+	}
+	return MRES_Ignored;
+}
+
+/**
+ * For every custom item in our loadout, reapply the correct defindex / classname.
+ */
+MRESReturn OnManageRegularWeaponsPost(int client, Handle hParams) {
+	TFClassType playerClass = TF2_GetPlayerClass(client);
+	for (int s; s < NUM_ITEMS; s++) {
+		int storedItem = g_CurrentLoadout[client][playerClass][s].entity;
+		if (!IsValidEntity(storedItem)) {
+			continue;
+		}
+		
+		CustomItemDefinition item;
+		if (!g_CurrentLoadout[client][playerClass][s].GetItemDefinition(item)) {
+			continue;
+		}
+		
+		// have to resolve the classname since, y'know, multiclass.
+		char realClassName[64];
+		strcopy(realClassName, sizeof(realClassName), item.className);
+		TF2Econ_TranslateWeaponEntForClass(realClassName, sizeof(realClassName), playerClass);
+		
+		SetEntProp(storedItem, Prop_Send, "m_iItemDefinitionIndex", item.defindex);
+		SetEntPropString(storedItem, Prop_Data, "m_iClassname", realClassName);
+	}
+	return MRES_Ignored;
 }
 
 /**
@@ -426,6 +489,31 @@ public void OnClientCommandKeyValues_Post(int client, KeyValues kv) {
 	if (StrEqual(cmd, "MVM_Respec")) {
 		g_bForceReequipItems[client] = false;
 	}
+}
+
+/**
+ * Returns the base item associated with the given playerClass and loadoutSlot combination, or
+ * TF_ITEMDEF_DEFAULT if no match is found.
+ */
+int FindBaseItem(TFClassType playerClass, int loadoutSlot) {
+	static ArrayList s_BaseItems;
+	if (!s_BaseItems) {
+		s_BaseItems = TF2Econ_GetItemList(FilterBaseItems);
+	}
+	
+	for (int i, n = s_BaseItems.Length; i < n; i++) {
+		int itemdef = s_BaseItems.Get(i);
+		if (TF2Econ_GetItemLoadoutSlot(itemdef, playerClass) == loadoutSlot) {
+			return itemdef;
+		}
+	}
+	return TF_ITEMDEF_DEFAULT;
+}
+
+bool FilterBaseItems(int itemdef, any __) {
+	Address pItemDef = TF2Econ_GetItemDefinitionAddress(itemdef);
+	return pItemDef?
+			!!LoadFromAddress(pItemDef + view_as<Address>(0xE6), NumberType_Int8) : false;
 }
 
 // bool CWX_SetPlayerLoadoutItem(int client, TFClassType playerClass, const char[] uid, int flags = 0);
