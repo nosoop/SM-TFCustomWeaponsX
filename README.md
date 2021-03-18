@@ -14,7 +14,7 @@ Same as previous iterations of Custom Weapons:
 
 - A text-based configuration format for server operators to create new items with.
 - A (newly localized) menu system for players to build their loadouts.
-- Support for equipping cosmetics.
+- Support for equipping wearable weapons such as shields and boots.
 
 New to CWX:
 
@@ -23,6 +23,10 @@ New to CWX:
 export your item to a file once it's configured to your liking.
 - Weapon persistence.  Custom items will not be dropped or reequipped on resupply, eliminating
 a whole class of related bugs and crummy workarounds.
+
+More information is provided in [the project wiki].
+
+[the project wiki]: https://github.com/nosoop/SM-TFCustomWeaponsX/wiki
 
 ## Installation
 
