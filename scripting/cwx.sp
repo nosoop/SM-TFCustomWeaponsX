@@ -8,7 +8,6 @@
 
 #include <tf2wearables>
 #include <tf_econ_data>
-#include <stocksoup/color_literals>
 #include <stocksoup/convars>
 #include <stocksoup/math>
 #include <stocksoup/tf/econ>
@@ -294,8 +293,7 @@ void OnClientCustomLoadoutItemModified(int client) {
 		// see if the player is into being respawned on loadout changes
 		QueryClientConVar(client, "tf_respawn_on_loadoutchanges", OnLoadoutRespawnPreference);
 	} else {
-		PrintColoredChatEx(client, CHAT_SOURCE_SELF, COLOR_TEAM ... "%t",
-				"LoadoutChangesUpdate");
+		PrintToChat(client, "%t", "LoadoutChangesUpdate");
 	}
 }
 
@@ -306,8 +304,7 @@ void OnLoadoutRespawnPreference(QueryCookie cookie, int client, ConVarQueryResul
 	} else if (!StringToInt(cvarValue) || !IsPlayerInRespawnRoom(client)) {
 		// the second check for respawn room is in case we're somehow not in one between
 		// the query and the callback
-		PrintColoredChatEx(client, CHAT_SOURCE_SELF, COLOR_TEAM ... "%t",
-				"LoadoutChangesUpdate");
+		PrintToChat(client, "%t", "LoadoutChangesUpdate");
 		return;
 	}
 	TF2_RespawnPlayer(client);
