@@ -264,7 +264,7 @@ int OnEquipMenuEvent(Menu menu, MenuAction action, int param1, int param2) {
 			
 			// TODO: we should be making this a submenu with item description?
 			if (uid[0]) {
-				SetClientCustomLoadoutItem(client, uid);
+				SetClientCustomLoadoutItem(client, g_iPlayerClassInMenu[client], uid);
 			} else {
 				UnsetClientCustomLoadoutItem(client, g_iPlayerClassInMenu[client],
 						g_iPlayerSlotInMenu[client]);

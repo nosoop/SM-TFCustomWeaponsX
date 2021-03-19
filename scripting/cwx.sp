@@ -270,12 +270,9 @@ MRESReturn OnGetLoadoutItemPost(int client, Handle hReturn, Handle hParams) {
 }
 
 /**
- * Saves the current item.
+ * Saves the current item into the loadout for the specified class.
  */
-bool SetClientCustomLoadoutItem(int client, const char[] itemuid) {
-	// TODO: write item to the class that the player opened the menu with
-	int playerClass = view_as<int>(TF2_GetPlayerClass(client));
-	
+bool SetClientCustomLoadoutItem(int client, int playerClass, const char[] itemuid) {
 	CustomItemDefinition item;
 	if (!GetCustomItemDefinition(itemuid, item)) {
 		return false;
@@ -291,7 +288,7 @@ bool SetClientCustomLoadoutItem(int client, const char[] itemuid) {
 		return false;
 	}
 	
-	OnClientCustomLoadoutItemModified(client);
+	OnClientCustomLoadoutItemModified(client, playerClass);
 	return true;
 }
 
@@ -301,13 +298,18 @@ void UnsetClientCustomLoadoutItem(int client, int playerClass, int itemSlot) {
 	g_ItemPersistCookies[playerClass][itemSlot].Set(client, "");
 	g_CurrentLoadoutEntity[client][playerClass][itemSlot] = INVALID_ENT_REFERENCE;
 	
-	OnClientCustomLoadoutItemModified(client);
+	OnClientCustomLoadoutItemModified(client, playerClass);
 }
 
 /**
  * Called when a player's custom inventory has changed.  Decide if we should act on it.
  */
-void OnClientCustomLoadoutItemModified(int client) {
+void OnClientCustomLoadoutItemModified(int client, int modifiedClass) {
+	if (view_as<int>(TF2_GetPlayerClass(client) != modifiedClass)) {
+		// do nothing if the loadout for the current class wasn't modified
+		return;
+	}
+	
 	if (IsPlayerInRespawnRoom(client) && IsPlayerAlive(client)) {
 		// see if the player is into being respawned on loadout changes
 		QueryClientConVar(client, "tf_respawn_on_loadoutchanges", OnLoadoutRespawnPreference);
