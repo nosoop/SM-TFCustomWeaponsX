@@ -288,8 +288,11 @@ void UnsetClientCustomLoadoutItem(int client, int playerClass, int itemSlot) {
 	OnClientCustomLoadoutItemModified(client);
 }
 
+/**
+ * Called when a player's custom inventory has changed.  Decide if we should act on it.
+ */
 void OnClientCustomLoadoutItemModified(int client) {
-	if (IsPlayerInRespawnRoom(client)) {
+	if (IsPlayerInRespawnRoom(client) && IsPlayerAlive(client)) {
 		// see if the player is into being respawned on loadout changes
 		QueryClientConVar(client, "tf_respawn_on_loadoutchanges", OnLoadoutRespawnPreference);
 	} else {
