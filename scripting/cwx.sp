@@ -231,6 +231,9 @@ Action OnPlayerLoadoutUpdated(UserMsg msg_id, BfRead msg, const int[] players,
 /**
  * Item persistence - we return our item's CEconItemView instance when the game looks up our
  * inventory item.  This prevents our custom item from being invalidated when touch resupply.
+ * 
+ * The game expects there to be a valid CEconItemView pointer in certain areas of the code, so
+ * avoid returning a nullptr.
  */
 MRESReturn OnGetLoadoutItemPost(int client, Handle hReturn, Handle hParams) {
 	// TODO: work around invalid class items being invalidated
@@ -243,7 +246,26 @@ MRESReturn OnGetLoadoutItemPost(int client, Handle hReturn, Handle hParams) {
 	
 	int storedItem = g_CurrentLoadoutEntity[client][playerClass][loadoutSlot];
 	if (!IsValidEntity(storedItem) || !HasEntProp(storedItem, Prop_Send, "m_Item")) {
-		return MRES_Ignored;
+		// the loadout entity we keep track of isn't valid, so we may need to make one
+		// we expect to have to equip something new at this point
+		
+		if (!g_CurrentLoadout[client][playerClass][loadoutSlot][0]) {
+			// we don't have a custom item; let the game process it
+			return MRES_Ignored;
+		}
+		
+		/**
+		 * we have a custom item we'd like to spawn in, don't return a loadout item, otherwise
+		 * we may equip / unequip a weapon that has side effects (e.g. Gunslinger)
+		 * 
+		 * we'll initialize our custom item later in `OnPlayerLoadoutUpdated`
+		 */
+		static int s_DefaultItem = INVALID_ENT_REFERENCE;
+		if (!IsValidEntity(s_DefaultItem)) {
+			s_DefaultItem = EntIndexToEntRef(TF2_SpawnWearable());
+			RemoveEntity(s_DefaultItem);
+		}
+		storedItem = s_DefaultItem;
 	}
 	
 	Address pStoredItemView = GetEntityAddress(storedItem)
