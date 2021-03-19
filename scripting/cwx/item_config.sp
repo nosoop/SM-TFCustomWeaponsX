@@ -32,7 +32,7 @@ enum struct CustomItemDefinition {
 	}
 }
 
-StringMap g_CustomItems;
+static StringMap g_CustomItems;
 
 void LoadCustomItemConfig() {
 	KeyValues itemSchema = new KeyValues("Items");
@@ -86,12 +86,12 @@ void LoadCustomItemConfig() {
 	if (g_CustomItems) {
 		char uid[MAX_ITEM_IDENTIFIER_LENGTH];
 		
-		StringMapSnapshot itemList = g_CustomItems.Snapshot();
+		StringMapSnapshot itemList = GetCustomItemList();
 		for (int i; i < itemList.Length; i++) {
 			itemList.GetKey(i, uid, sizeof(uid));
 			
 			CustomItemDefinition item;
-			g_CustomItems.GetArray(uid, item, sizeof(item));
+			GetCustomItemDefinition(uid, item);
 			
 			item.Destroy();
 		}
@@ -185,6 +185,14 @@ bool CreateItemFromSection(KeyValues config) {
 	return true;
 }
 
+bool GetCustomItemDefinition(const char[] uid, CustomItemDefinition item) {
+	return g_CustomItems.GetArray(uid, item, sizeof(item));
+}
+
+StringMapSnapshot GetCustomItemList() {
+	return g_CustomItems.Snapshot();
+}
+
 /**
  * Builds the UID-to-loadout-position mapping, so the plugin knows which weapons can be rendered
  * in which menus.
@@ -224,7 +232,7 @@ static bool ComputeEquipSlotPosition(KeyValues kv, int itemdef,
 
 int LookupAndEquipItem(int client, const char[] itemuid) {
 	CustomItemDefinition item;
-	if (g_CustomItems.GetArray(itemuid, item, sizeof(item))) {
+	if (GetCustomItemDefinition(itemuid, item)) {
 		return EquipCustomItem(client, item);
 	}
 	return INVALID_ENT_REFERENCE;

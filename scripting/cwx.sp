@@ -27,10 +27,6 @@ public Plugin myinfo = {
 	url = "https://github.com/nosoop/SM-TFCustomWeaponsX"
 }
 
-// enum struct custom_item_entry_t {
-	// KeyValues m_hKeyValues;
-// };
-
 // this is the maximum expected length of our UID
 #define MAX_ITEM_IDENTIFIER_LENGTH 64
 
@@ -42,8 +38,6 @@ public Plugin myinfo = {
 // okay, so we can't use TFClassType even view_as'd
 // otherwise it'll warn on array-based enumstruct
 #define NUM_PLAYER_CLASSES 10
-
-// StringMap g_CustomItems; // <identifier, custom_item_entry_t>
 
 bool g_bRetrievedLoadout[MAXPLAYERS + 1];
 char g_CurrentLoadout[MAXPLAYERS + 1][NUM_PLAYER_CLASSES][NUM_ITEMS][MAX_ITEM_IDENTIFIER_LENGTH];
@@ -283,7 +277,7 @@ bool SetClientCustomLoadoutItem(int client, const char[] itemuid) {
 	int playerClass = view_as<int>(TF2_GetPlayerClass(client));
 	
 	CustomItemDefinition item;
-	if (!g_CustomItems.GetArray(itemuid, item, sizeof(item))) {
+	if (!GetCustomItemDefinition(itemuid, item)) {
 		return false;
 	}
 	
@@ -343,7 +337,7 @@ bool CanPlayerEquipItem(int client, const char[] uid) {
 	TFClassType playerClass = TF2_GetPlayerClass(client);
 	
 	CustomItemDefinition item;
-	if (!g_CustomItems.GetArray(uid, item, sizeof(item))) {
+	if (!GetCustomItemDefinition(uid, item)) {
 		// item doesn't exist.
 		return false;
 	} else if (item.loadoutPosition[playerClass] == -1) {

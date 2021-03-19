@@ -132,15 +132,16 @@ void BuildEquipMenu() {
 	
 	char uid[MAX_ITEM_IDENTIFIER_LENGTH];
 	
-	StringMapSnapshot itemList = g_CustomItems.Snapshot();
+	StringMapSnapshot itemList = GetCustomItemList();
 	for (int i; i < itemList.Length; i++) {
 		itemList.GetKey(i, uid, sizeof(uid));
 		
 		CustomItemDefinition item;
-		g_CustomItems.GetArray(uid, item, sizeof(item));
+		GetCustomItemDefinition(uid, item);
 		
 		s_EquipMenu.AddItem(uid, item.displayName);
 	}
+	delete itemList;
 }
 
 /**
@@ -151,7 +152,7 @@ static bool ItemVisibleInEquipMenu(int client, const char[] uid) {
 	
 	// not visible for current submenu
 	CustomItemDefinition item;
-	if (!g_CustomItems.GetArray(uid, item, sizeof(item))
+	if (!GetCustomItemDefinition(uid, item)
 			|| item.loadoutPosition[playerClass] != g_iPlayerSlotInMenu[client]) {
 		return false;
 	}
