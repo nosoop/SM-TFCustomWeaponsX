@@ -148,7 +148,7 @@ void BuildEquipMenu() {
  * Determines visibility of items in the loadout menu.
  */
 static bool ItemVisibleInEquipMenu(int client, const char[] uid) {
-	TFClassType playerClass = TF2_GetPlayerClass(client);
+	int playerClass = g_iPlayerClassInMenu[client];
 	
 	// not visible for current submenu
 	CustomItemDefinition item;
