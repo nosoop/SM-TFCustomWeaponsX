@@ -167,9 +167,11 @@ Action EquipItemCmd(int client, int argc) {
 	StripQuotes(itemuid);
 	TrimString(itemuid);
 	
-	int item = LookupAndEquipItem(client, itemuid);
-	if (!IsValidEntity(item)) {
+	CustomItemDefinition item;
+	if (!GetCustomItemDefinition(itemuid, item)) {
 		ReplyToCommand(client, "Unknown custom item uid %s", itemuid);
+	} else if (!IsValidEntity(EquipCustomItem(client, item))) {
+		ReplyToCommand(client, "Failed to equip custom item uid %s", itemuid);
 	}
 	return Plugin_Handled;
 }
@@ -192,8 +194,12 @@ Action EquipItemCmdTarget(int client, int argc) {
 	TrimString(itemuid);
 	
 	int target = FindTarget(client, targetString, .immunity = false);
-	if (!IsValidEntity(LookupAndEquipItem(target, itemuid))) {
+	
+	CustomItemDefinition item;
+	if (!GetCustomItemDefinition(itemuid, item)) {
 		ReplyToCommand(client, "Unknown custom item uid %s", itemuid);
+	} else if (!IsValidEntity(EquipCustomItem(target, item))) {
+		ReplyToCommand(client, "Failed to equip custom item uid %s", itemuid);
 	}
 	return Plugin_Handled;
 }
@@ -214,9 +220,14 @@ Action OnPlayerLoadoutUpdated(UserMsg msg_id, BfRead msg, const int[] players,
 		int currentLoadoutItem = g_CurrentLoadoutEntity[client][playerClass][i];
 		if (!IsValidEntity(currentLoadoutItem)
 				|| GetEntityFlags(currentLoadoutItem) & FL_KILLME) {
-			int entity = LookupAndEquipItem(client, g_CurrentLoadout[client][playerClass][i]);
-			g_CurrentLoadoutEntity[client][playerClass][i] = IsValidEntity(entity)?
-					EntIndexToEntRef(entity) : INVALID_ENT_REFERENCE;
+			// TODO validate that the player can access this item
+			CustomItemDefinition item;
+			if (!GetCustomItemDefinition(g_CurrentLoadout[client][playerClass][i], item)) {
+				continue;
+			}
+			
+			g_CurrentLoadoutEntity[client][playerClass][i] =
+					EntIndexToEntRef(EquipCustomItem(client, item));
 		}
 	}
 	

@@ -231,16 +231,8 @@ static bool ComputeEquipSlotPosition(KeyValues kv, int itemdef,
 	return true;
 }
 
-int LookupAndEquipItem(int client, const char[] itemuid) {
-	CustomItemDefinition item;
-	if (GetCustomItemDefinition(itemuid, item)) {
-		return EquipCustomItem(client, item);
-	}
-	return INVALID_ENT_REFERENCE;
-}
-
 /**
- * Equips an item from the given KeyValues structure.
+ * Equips an item from the given CustomItemDefinition instance.
  * Returns the item entity if successful.
  */
 int EquipCustomItem(int client, const CustomItemDefinition item) {
