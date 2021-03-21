@@ -147,18 +147,16 @@ void BuildEquipMenu() {
 /**
  * Determines visibility of items in the loadout menu.
  */
-static bool ItemVisibleInEquipMenu(int client, const char[] uid) {
+static bool ItemVisibleInEquipMenu(int client, const CustomItemDefinition item) {
 	int playerClass = g_iPlayerClassInMenu[client];
 	
 	// not visible for current submenu
-	CustomItemDefinition item;
-	if (!GetCustomItemDefinition(uid, item)
-			|| item.loadoutPosition[playerClass] != g_iPlayerSlotInMenu[client]) {
+	if (item.loadoutPosition[playerClass] != g_iPlayerSlotInMenu[client]) {
 		return false;
 	}
 	
 	// visible for submenu, but player can't equip it for other reasons
-	return CanPlayerEquipItem(client, uid);
+	return CanPlayerEquipItem(client, item);
 }
 
 /**
@@ -282,7 +280,13 @@ int OnEquipMenuEvent(Menu menu, MenuAction action, int param1, int param2) {
 			char uid[MAX_ITEM_IDENTIFIER_LENGTH];
 			menu.GetItem(position, uid, sizeof(uid));
 			
-			if (uid[0] && !ItemVisibleInEquipMenu(client, uid)) {
+			if (!uid[0]) {
+				// "no custom item" is always visible
+				return ITEMDRAW_DEFAULT;
+			}
+			
+			CustomItemDefinition item;
+			if (!GetCustomItemDefinition(uid, item) || !ItemVisibleInEquipMenu(client, item)) {
 				// remove visibility of item
 				return ITEMDRAW_IGNORE;
 			}

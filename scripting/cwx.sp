@@ -348,14 +348,10 @@ void OnLoadoutRespawnPreference(QueryCookie cookie, int client, ConVarQueryResul
  * Returns whether or not the player can actually equip this item normally.
  * (This does not prevent admins from forcibly applying the item to the player.)
  */
-bool CanPlayerEquipItem(int client, const char[] uid) {
+bool CanPlayerEquipItem(int client, const CustomItemDefinition item) {
 	TFClassType playerClass = TF2_GetPlayerClass(client);
 	
-	CustomItemDefinition item;
-	if (!GetCustomItemDefinition(uid, item)) {
-		// item doesn't exist.
-		return false;
-	} else if (item.loadoutPosition[playerClass] == -1) {
+	if (item.loadoutPosition[playerClass] == -1) {
 		return false;
 	} else if (item.access[0] && !CheckCommandAccess(client, item.access, 0, true)) {
 		// this item requires access
