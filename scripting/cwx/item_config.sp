@@ -37,6 +37,7 @@ static StringMap g_CustomItems;
 void LoadCustomItemConfig() {
 	KeyValues itemSchema = new KeyValues("Items");
 	
+	// legacy single-file schema format
 	char schemaPath[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, schemaPath, sizeof(schemaPath), "configs/%s", "cwx_schema.txt");
 	itemSchema.ImportFromFile(schemaPath);

@@ -42,6 +42,8 @@ public Plugin myinfo = {
 bool g_bRetrievedLoadout[MAXPLAYERS + 1];
 char g_CurrentLoadout[MAXPLAYERS + 1][NUM_PLAYER_CLASSES][NUM_ITEMS][MAX_ITEM_IDENTIFIER_LENGTH];
 
+// loadout entity, for persistence
+// note for the future: we do *not* restore this on late load since the schema may have changed
 int g_CurrentLoadoutEntity[MAXPLAYERS + 1][NUM_PLAYER_CLASSES][NUM_ITEMS];
 
 Cookie g_ItemPersistCookies[NUM_PLAYER_CLASSES][NUM_ITEMS];
@@ -305,7 +307,7 @@ void UnsetClientCustomLoadoutItem(int client, int playerClass, int itemSlot) {
  * Called when a player's custom inventory has changed.  Decide if we should act on it.
  */
 void OnClientCustomLoadoutItemModified(int client, int modifiedClass) {
-	if (view_as<int>(TF2_GetPlayerClass(client) != modifiedClass)) {
+	if (view_as<int>(TF2_GetPlayerClass(client)) != modifiedClass) {
 		// do nothing if the loadout for the current class wasn't modified
 		return;
 	}
@@ -361,6 +363,3 @@ static bool IsPlayerInRespawnRoom(int client) {
 	AddVectors(vecOrigin, vecCenter, vecCenter);
 	return TF2Util_IsPointInRespawnRoom(vecCenter, client, true);
 }
-
-// Overrides the default visibility of the item in the loadout menu.
-// CWX_SetItemVisibility(int client, const char[] uid, ItemVisibility vis);
