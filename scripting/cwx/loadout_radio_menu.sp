@@ -19,7 +19,7 @@ static int g_iPlayerSlotInMenu[MAXPLAYERS + 1];
 /**
  * Localized player class names, in TFClassType order.  Used in CWX's translation file.
  */
-char g_LocalizedPlayerClass[][] = {
+static char g_LocalizedPlayerClass[][] = {
 	"TF_Class_Name_Undefined",
 	"TF_Class_Name_Scout",
 	"TF_Class_Name_Sniper",
@@ -35,7 +35,7 @@ char g_LocalizedPlayerClass[][] = {
 /**
  * Localized loadout slot names, in loadout slot order.
  */
-char g_LocalizedLoadoutSlots[][] = {
+static char g_LocalizedLoadoutSlots[][] = {
 	"LoadoutSlot_Primary",
 	"LoadoutSlot_Secondary",
 	"LoadoutSlot_Melee",
@@ -59,10 +59,26 @@ char g_LocalizedLoadoutSlots[][] = {
 };
 
 /**
+ * Slot option visibility bits.  These are hardcoded to restrict which slots are visible on
+ * which player classes.
+ * 
+ * I originally considered automatically resolving this information through Econ Data, but that
+ * seemed to be more trouble than it's worth.
+ */
+static int bitsSlotVisibility[NUM_PLAYER_CLASSES] = {
+	0b0000000, 0b0000111, 0b0000111, 0b0000111, 0b0000111,
+	0b0000111, 0b0000111, 0b0000111, 0b1010110, 0b0001111
+};
+
+/**
  * Command callback to display items to a player.
  */
 Action DisplayItems(int client, int argc) {
 	g_iPlayerClassInMenu[client] = view_as<int>(TF2_GetPlayerClass(client));
+	if (!g_iPlayerClassInMenu[client]) {
+		return Plugin_Handled;
+	}
+	
 	s_LoadoutSlotMenu.Display(client, 30);
 	return Plugin_Handled;
 }
@@ -103,11 +119,10 @@ void PrecacheMenuResources() {
  */
 void BuildLoadoutSlotMenu() {
 	delete s_LoadoutSlotMenu;
-	s_LoadoutSlotMenu = new Menu(OnLoadoutSlotMenuEvent,
-			MENU_ACTIONS_DEFAULT | MenuAction_Display | MenuAction_DisplayItem);
+	s_LoadoutSlotMenu = new Menu(OnLoadoutSlotMenuEvent, MENU_ACTIONS_ALL);
 	s_LoadoutSlotMenu.OptionFlags |= MENUFLAG_NO_SOUND;
 	
-	for (int i; i < 3; i++) {
+	for (int i; i < NUM_ITEMS; i++) {
 		char name[32];
 		TF2Econ_TranslateLoadoutSlotIndexToName(i, name, sizeof(name));
 		s_LoadoutSlotMenu.AddItem(name, name);
@@ -162,7 +177,7 @@ static bool ItemVisibleInEquipMenu(int client, const CustomItemDefinition item) 
 /**
  * Handles the loadout slot menu.
  */
-int OnLoadoutSlotMenuEvent(Menu menu, MenuAction action, int param1, int param2) {
+static int OnLoadoutSlotMenuEvent(Menu menu, MenuAction action, int param1, int param2) {
 	switch (action) {
 		/**
 		 * Sets the menu header for the current section.
@@ -197,6 +212,19 @@ int OnLoadoutSlotMenuEvent(Menu menu, MenuAction action, int param1, int param2)
 			EmitSoundToClient(client, SOUND_MENU_BUTTON_CLICK);
 		}
 		
+		case MenuAction_DrawItem: {
+			int client = param1;
+			int position = param2;
+			
+			char loadoutSlotName[64];
+			menu.GetItem(position, loadoutSlotName, sizeof(loadoutSlotName));
+			int loadoutSlot = TF2Econ_TranslateLoadoutSlotNameToIndex(loadoutSlotName);
+			
+			if (bitsSlotVisibility[g_iPlayerClassInMenu[client]] & (1 << loadoutSlot) == 0) {
+				return ITEMDRAW_IGNORE;
+			}
+		}
+		
 		/**
 		 * Renders the native loadout slot name for the client.
 		 */
@@ -226,7 +254,7 @@ int OnLoadoutSlotMenuEvent(Menu menu, MenuAction action, int param1, int param2)
 /**
  * Handles the weapon list selection menu.
  */
-int OnEquipMenuEvent(Menu menu, MenuAction action, int param1, int param2) {
+static int OnEquipMenuEvent(Menu menu, MenuAction action, int param1, int param2) {
 	switch (action) {
 		/**
 		 * Sets the menu title for the current section (as the player class / loadout slot).

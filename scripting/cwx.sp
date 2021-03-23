@@ -40,7 +40,7 @@ public Plugin myinfo = {
 #define MAX_ITEM_NAME_LENGTH 128
 
 // this is the number of slots allocated to our thing
-#define NUM_ITEMS 5
+#define NUM_ITEMS 7
 
 // okay, so we can't use TFClassType even view_as'd
 // otherwise it'll warn on array-based enumstruct
