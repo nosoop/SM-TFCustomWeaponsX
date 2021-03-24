@@ -171,8 +171,23 @@ bool CreateItemFromSection(KeyValues config) {
 	config.GetString("access", item.access, sizeof(item.access));
 	
 	if (config.JumpToKey("attributes_game")) {
+		// validate that the attributes actually exist
+		// we don't throw a complete failure here since it can be injected later
+		if (config.GotoFirstSubKey(false)) {
+			do {
+				char key[256];
+				config.GetSectionName(key, sizeof(key));
+				
+				if (TF2Econ_TranslateAttributeNameToDefinitionIndex(key) == -1) {
+					LogError("Item uid '%s' references non-existent attribute '%s'", uid, key);
+				}
+			} while (config.GotoNextKey(false));
+			config.GoBack();
+		}
+		
 		item.nativeAttributes = new KeyValues("attributes_game");
 		item.nativeAttributes.Import(config);
+		
 		config.GoBack();
 	}
 	
