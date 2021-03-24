@@ -193,14 +193,31 @@ Action EquipItemCmdTarget(int client, int argc) {
 	StripQuotes(itemuid);
 	TrimString(itemuid);
 	
-	int target = FindTarget(client, targetString, .immunity = false);
-	
 	CustomItemDefinition item;
 	if (!GetCustomItemDefinition(itemuid, item)) {
 		ReplyToCommand(client, "Unknown custom item uid %s", itemuid);
-	} else if (!IsValidEntity(EquipCustomItem(target, item))) {
-		ReplyToCommand(client, "Failed to equip custom item uid %s", itemuid);
+		return Plugin_Handled;
 	}
+	
+	bool multilang;
+	char targetName[MAX_NAME_LENGTH];
+	int targets[MAXPLAYERS], nTargetsOrFailureReason;
+	nTargetsOrFailureReason = ProcessTargetString(targetString, client,
+			targets, sizeof(targets), COMMAND_FILTER_NO_IMMUNITY,
+			targetName, sizeof(targetName), multilang);
+	
+	if (nTargetsOrFailureReason <= 0) {
+		ReplyToTargetError(client, nTargetsOrFailureReason);
+		return Plugin_Handled;
+	}
+	
+	for (int i; i < nTargetsOrFailureReason; i++) {
+		int target = targets[i];
+		if (!IsValidEntity(EquipCustomItem(target, item))) {
+			ReplyToCommand(client, "Failed to equip custom item uid %s on %N", itemuid, target);
+		}
+	}
+	
 	return Plugin_Handled;
 }
 
