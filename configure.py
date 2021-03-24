@@ -23,6 +23,7 @@ copy_files = [
 # additional directories for sourcepawn include lookup
 # `scripting/include` is explicitly included
 include_dirs = [
+	'${builddir}/generated_code',
 	'third_party/include_submodules',
 	'third_party/vendored'
 ]
@@ -63,6 +64,7 @@ with contextlib.closing(ninja_syntax.Writer(open('build.ninja', 'wt'))) as build
 	build.newline()
 	
 	vars = {
+		'python': sys.executable,
 		'configure_args': sys.argv[1:],
 		'root': '.',
 		'builddir': 'build',
@@ -78,7 +80,7 @@ with contextlib.closing(ninja_syntax.Writer(open('build.ninja', 'wt'))) as build
 	
 	build.comment("""Regenerate build files if build script changes.""")
 	build.rule('configure',
-			command = sys.executable + ' ${root}/configure.py ${configure_args}',
+			command = '${python} ${root}/configure.py ${configure_args}',
 			description = 'Reconfiguring build', generator = 1)
 	
 	build.build('build.ninja', 'configure',
@@ -89,6 +91,23 @@ with contextlib.closing(ninja_syntax.Writer(open('build.ninja', 'wt'))) as build
 			command = '${spcomp} ${in} ${spcflags} -o ${out}',
 			description = 'Compiling ${out}')
 	build.newline()
+	
+	if os.path.exists('.git'):
+		# regenerate dyndep whenever .git/HEAD changes
+		# update dyndep file to point to our new HEAD ref
+		build.rule('versioning',
+				command = '${python} ${root}/contrib/build-commit-versioning/autoversion.py dyndep ${out}',
+				description = "Determining current git HEAD ref")
+		version_dyndep, *_ = build.build('${builddir}/generated_code/autoversioning/version.inc.dd', 'versioning', implicit = '.git/HEAD')
+		build.newline()
+		
+		# regenerate versioning whenever our HEAD ref changes
+		build.rule('autoversion',
+				command = '${python} ${root}/contrib/build-commit-versioning/autoversion.py include ${out}',
+				description = "Building automatic version include")
+		version_include = build.build('${builddir}/generated_code/autoversioning/version.inc', 'autoversion',
+				implicit = version_dyndep, dyndep = version_dyndep)
+		build.newline()
 	
 	# Platform-specific copy instructions
 	if platform.system() == "Windows":
@@ -105,7 +124,7 @@ with contextlib.closing(ninja_syntax.Writer(open('build.ninja', 'wt'))) as build
 		sp_file = os.path.normpath(os.path.join('$root', 'scripting', plugin))
 		
 		smx_file = os.path.normpath(os.path.join('$builddir', 'plugins', smx_plugin))
-		build.build(smx_file, 'spcomp', sp_file)
+		build.build(smx_file, 'spcomp', sp_file, implicit = version_include)
 	build.newline()
 	
 	build.comment("""Copy plugin sources to build output""")

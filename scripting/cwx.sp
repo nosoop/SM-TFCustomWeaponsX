@@ -19,11 +19,18 @@
 #include <clientprefs>
 #include <dhooks>
 
+#tryinclude <autoversioning/version>
+#if defined __ninjabuild_auto_version_included
+	#define VERSION_SUFFIX "-" ... GIT_COMMIT_SHORT_HASH
+#else
+	#define VERSION_SUFFIX ""
+#endif
+
 public Plugin myinfo = {
 	name = "[TF2] Custom Weapons X",
 	author = "nosoop",
 	description = "Allows server operators to design their own weapons.",
-	version = "X.0.6",
+	version = "X.0.6" ... VERSION_SUFFIX,
 	url = "https://github.com/nosoop/SM-TFCustomWeaponsX"
 }
 
