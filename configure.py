@@ -96,14 +96,14 @@ with contextlib.closing(ninja_syntax.Writer(open('build.ninja', 'wt'))) as build
 		# regenerate dyndep whenever .git/HEAD changes
 		# update dyndep file to point to our new HEAD ref
 		build.rule('versioning',
-				command = '${python} ${root}/contrib/build-commit-versioning/autoversion.py dyndep ${out}',
+				command = '${python} ${root}/misc/autoversion.py dyndep ${out}',
 				description = "Determining current git HEAD ref")
 		version_dyndep, *_ = build.build('${builddir}/generated_code/autoversioning/version.inc.dd', 'versioning', implicit = '.git/HEAD')
 		build.newline()
 		
 		# regenerate versioning whenever our HEAD ref changes
 		build.rule('autoversion',
-				command = '${python} ${root}/contrib/build-commit-versioning/autoversion.py include ${out}',
+				command = '${python} ${root}/misc/autoversion.py include ${out}',
 				description = "Building automatic version include")
 		version_include = build.build('${builddir}/generated_code/autoversioning/version.inc', 'autoversion',
 				implicit = version_dyndep, dyndep = version_dyndep)
