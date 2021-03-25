@@ -5,6 +5,7 @@
 import subprocess
 import pathlib
 import textwrap
+import re
 
 def git_version():
 	return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
@@ -30,7 +31,13 @@ def generate_dyndep(args):
 	# regenerated whenever .git/HEAD changes
 	# change the implicit dependency we rely on based on what ref HEAD points to
 	with open('.git/HEAD', 'rt') as git_head:
-		_, head_path = git_head.read().split()
+		contents = git_head.read().strip()
+		if re.search('^[a-fA-F0-9]{40}$', contents):
+			head_path = 'HEAD'
+		else:
+			_, head_path = map(lambda s: s.strip(), contents.split(':'))
+			if not os.path.exists(os.path.join('.git', head_path)):
+				head_path = 'HEAD'
 	
 	# we determine the file name by stripping .dd from `file.ext.dd`
 	include_path = args.output_file.with_suffix('')
