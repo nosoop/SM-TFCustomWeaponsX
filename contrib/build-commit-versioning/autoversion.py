@@ -36,7 +36,7 @@ def generate_dyndep(args):
 			head_path = 'HEAD'
 		else:
 			_, head_path = map(lambda s: s.strip(), contents.split(':'))
-			if not os.path.exists(os.path.join('.git', head_path)):
+			if not pathlib.Path('.git') / head_path:
 				head_path = 'HEAD'
 	
 	# we determine the file name by stripping .dd from `file.ext.dd`
