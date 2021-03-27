@@ -55,5 +55,10 @@ void TF2_EquipPlayerEconItem(int client, int item) {
 	} else {
 		EquipPlayerWeapon(client, item);
 		TF2_ResetWeaponAmmo(item);
+		
+		int ammoType = GetEntProp(item, Prop_Send, "m_iPrimaryAmmoType");
+		if (ammoType != -1) {
+			SetEntProp(item, Prop_Send, "m_iClip1", TF2Util_GetWeaponMaxClip(item));
+		}
 	}
 }
