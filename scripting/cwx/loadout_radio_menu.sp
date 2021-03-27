@@ -154,6 +154,18 @@ void BuildEquipMenu() {
 		CustomItemDefinition item;
 		GetCustomItemDefinition(uid, item);
 		
+		for (int c = 1; c < NUM_PLAYER_CLASSES; c++) {
+			int loadoutPosition = item.loadoutPosition[c];
+			if (loadoutPosition == -1) {
+				continue;
+			}
+			
+			if (bitsSlotVisibility[c] & (1 << loadoutPosition) == 0) {
+				LogMessage("Item uid %s specifies a non-visible loadout slot for class %t",
+						uid, g_LocalizedPlayerClass[c]);
+			}
+		}
+		
 		s_EquipMenu.AddItem(uid, item.displayName);
 	}
 	delete itemList;
