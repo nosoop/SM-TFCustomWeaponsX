@@ -40,7 +40,10 @@ More information is provided in [the project wiki].
 - [TF2Utils](https://github.com/nosoop/SM-TFUtils)
 - [DHooks2](https://github.com/peace-maker/DHooks2)
 
-### Installation
+### Prebuilt Package
+
+This repository is configured to have Github automatically compile the plugin and create a
+release whenever commits are pushed.
 
 Download the `package.zip` from [the releases section][] and unpack into your SourceMod
 directory.
@@ -80,6 +83,11 @@ This includes:
 - killfeed / log name
 - weapon model (view / world)
 - clip / ammo settings
+
+For implementations of those, see the [Core Attribute Implementations][] page on the project
+wiki.
+
+[Core Attribute Implementations]: https://github.com/nosoop/SM-TFCustomWeaponsX/wiki/Core-Attribute-Implementations
 
 ## For attribute developers
 
