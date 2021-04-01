@@ -350,10 +350,20 @@ static int OnEquipMenuEvent(Menu menu, MenuAction action, int param1, int param2
 			
 			SetGlobalTransTarget(client);
 			
+			bool redraw;
+			if (!uid[0]) {
+				FormatEx(itemName, sizeof(itemName), "%t", "UnequipCustomItem");
+				redraw = true;
+			}
+			
 			if (equipped) {
 				Format(itemName, sizeof(itemName), "%s %t", itemName, "QuickSwitchEquipped");
-				SetGlobalTransTarget(LANG_SERVER);
-				
+				redraw = true;
+			}
+			
+			SetGlobalTransTarget(LANG_SERVER);
+			
+			if (redraw) {
 				return RedrawMenuItem(itemName);
 			}
 		}
