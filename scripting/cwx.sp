@@ -76,7 +76,8 @@ public void OnPluginStart() {
 	delete hGameConf;
 	
 	
-	HookUserMessage(GetUserMessageId("PlayerLoadoutUpdated"), OnPlayerLoadoutUpdated);
+	HookUserMessage(GetUserMessageId("PlayerLoadoutUpdated"), OnPlayerLoadoutUpdated,
+			.post = OnPlayerLoadoutUpdatedPost);
 	
 	CreateVersionConVar("cwx_version", "Custom Weapons X version.");
 	
@@ -228,9 +229,16 @@ Action EquipItemCmdTarget(int client, int argc) {
 	return Plugin_Handled;
 }
 
+int s_LastUpdatedClient;
+
 Action OnPlayerLoadoutUpdated(UserMsg msg_id, BfRead msg, const int[] players,
 		int playersNum, bool reliable, bool init) {
 	int client = msg.ReadByte();
+	s_LastUpdatedClient = GetClientSerial(client);
+}
+
+void OnPlayerLoadoutUpdatedPost(UserMsg msg_id, bool sent) {
+	int client = GetClientFromSerial(s_LastUpdatedClient);
 	int playerClass = view_as<int>(TF2_GetPlayerClass(client));
 	
 	for (int i; i < NUM_ITEMS; i++) {
