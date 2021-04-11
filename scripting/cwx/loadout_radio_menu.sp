@@ -67,7 +67,7 @@ static char g_LocalizedLoadoutSlots[][] = {
  */
 static int bitsSlotVisibility[NUM_PLAYER_CLASSES] = {
 	0b0000000, 0b0000111, 0b0000111, 0b0000111, 0b0000111,
-	0b0000111, 0b0000111, 0b0000111, 0b1010110, 0b0001111
+	0b0000111, 0b0000111, 0b0000111, 0b1010110, 0b1100111
 };
 
 /**
