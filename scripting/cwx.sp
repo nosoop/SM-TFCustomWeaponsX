@@ -55,6 +55,8 @@ int g_CurrentLoadoutEntity[MAXPLAYERS + 1][NUM_PLAYER_CLASSES][NUM_ITEMS];
 
 Cookie g_ItemPersistCookies[NUM_PLAYER_CLASSES][NUM_ITEMS];
 
+bool g_bForceReequipItems[MAXPLAYERS + 1];
+
 #include "cwx/item_config.sp"
 #include "cwx/item_entity.sp"
 #include "cwx/item_export.sp"
@@ -75,7 +77,7 @@ public void OnPluginStart() {
 	
 	delete hGameConf;
 	
-	
+	HookEvent("player_spawn", OnPlayerSpawnPost);
 	HookUserMessage(GetUserMessageId("PlayerLoadoutUpdated"), OnPlayerLoadoutUpdated,
 			.post = OnPlayerLoadoutUpdatedPost);
 	
@@ -250,7 +252,7 @@ void OnPlayerLoadoutUpdatedPost(UserMsg msg_id, bool sent) {
 		// equip our item if it isn't already equipped, or if it's being killed
 		// the latter applies to items that are normally invalid for the class
 		int currentLoadoutItem = g_CurrentLoadoutEntity[client][playerClass][i];
-		if (!IsValidEntity(currentLoadoutItem)
+		if (g_bForceReequipItems[client] || !IsValidEntity(currentLoadoutItem)
 				|| GetEntityFlags(currentLoadoutItem) & FL_KILLME) {
 			// TODO validate that the player can access this item
 			CustomItemDefinition item;
@@ -265,6 +267,11 @@ void OnPlayerLoadoutUpdatedPost(UserMsg msg_id, bool sent) {
 	
 	// TODO: switch to the correct slot if we're not holding anything
 	// as is the case again, this happens on non-valid-for-class items
+}
+
+void OnPlayerSpawnPost(Event event, const char[] name, bool dontBroadcast) {
+	int client = GetClientOfUserId(event.GetInt("userid"));
+	g_bForceReequipItems[client] = false;
 }
 
 /**
@@ -312,6 +319,40 @@ MRESReturn OnGetLoadoutItemPost(int client, Handle hReturn, Handle hParams) {
 	
 	DHookSetReturn(hReturn, pStoredItemView);
 	return MRES_Supercede;
+}
+
+/**
+ * Handles a special case where the player is refunding all of their upgrades, which may stomp
+ * on any existing runtime attributes applied to our weapon.
+ */
+public Action OnClientCommandKeyValues(int client, KeyValues kv) {
+	char cmd[64];
+	kv.GetSectionName(cmd, sizeof(cmd));
+	
+	/**
+	 * Mark the player to always invalidate our items so they get reequipped during respawn --
+	 * this is fine since TF2 manages to reapply upgrades to plugin-granted items.
+	 * 
+	 * The player gets their loadout changed multiple times during respec so we can't just
+	 * invalidate the reference in g_CurrentLoadoutEntity (since it'll be valid after the first
+	 * change).
+	 * 
+	 * Hopefully nobody's blocking "MVM_Respec", because that would leave this flag set.
+	 * Otherwise we should be able to hook CUpgrades::GrantOrRemoveAllUpgrades() directly,
+	 * though that incurs a gamedata burden.
+	 */
+	if (StrEqual(cmd, "MVM_Respec")) {
+		g_bForceReequipItems[client] = true;
+	}
+}
+
+public void OnClientCommandKeyValues_Post(int client, KeyValues kv) {
+	char cmd[64];
+	kv.GetSectionName(cmd, sizeof(cmd));
+	
+	if (StrEqual(cmd, "MVM_Respec")) {
+		g_bForceReequipItems[client] = false;
+	}
 }
 
 /**
