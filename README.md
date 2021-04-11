@@ -99,6 +99,9 @@ systems:
   - New attribute classes can be injected using a plugin like [Hidden Dev Attributes][], and
   developers can then use `TF2Attrib_HookValue*` to calculate values like any other in-game
   attribute.
+  - For increased flexibility / fixes with existing game attributes, see my
+  [Attribute Support Fixes][] project, which is a no-configuration project that fixes
+  certain attribute interactions.
 - The [Custom Attributes Framework][].
   - These are basically `KeyValues` handles stored as an attribute value under a common
   interface.  "Attributes" can be declared freely without an injection process, speeding up
@@ -119,3 +122,4 @@ the value from entities at runtime and are tied to the game's attribute system.
 [TF2Attributes]: https://github.com/nosoop/tf2attributes
 [Hidden Dev Attributes]: https://forums.alliedmods.net/showthread.php?t=326853
 [Custom Attributes Framework]: https://github.com/nosoop/SM-TFCustAttr
+[Attribute Support Fixes]: https://github.com/nosoop/SM-TFAttributeSupport
