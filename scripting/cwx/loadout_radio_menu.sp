@@ -360,7 +360,6 @@ static int OnEquipMenuEvent(Menu menu, MenuAction action, int param1, int param2
 			} else if(item.localizedNames) {
 				char lang[16], text[MAX_ITEM_IDENTIFIER_LENGTH];
 				GetLanguageInfo(GetClientLanguage(client), lang, sizeof(lang), text, sizeof(text));
-				PrintToChat(client, "Le lang: %s", lang);
 				
 				item.localizedNames.GetString(lang, text, sizeof(text)); //We only need the language code
 				if(text[0] != '\0') { //Translation found for the player's language
