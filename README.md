@@ -61,6 +61,14 @@ This plugin can run alongside CW3, other than conflicting when weapons are appli
 
 [the releases section]: https://github.com/nosoop/SM-TFCustomWeaponsX/releases
 
+### Upgrading
+
+If you're upgrading an existing installation, please make sure to make a note of your currently
+installed version, then read over the [Upgrade Notes][] section of the wiki to upgrade any
+changed dependencies between your current version and the latest.
+
+[Upgrade Notes]: https://github.com/nosoop/SM-TFCustomWeaponsX/wiki/Upgrade-Notes
+
 ### Building
 
 This project can be built in a reproductive manner with [Ninja](https://ninja-build.org/),
