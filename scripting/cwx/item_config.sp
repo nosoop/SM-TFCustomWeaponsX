@@ -7,6 +7,7 @@ enum struct CustomItemDefinition {
 	
 	int defindex;
 	char displayName[128];
+	KeyValues localizedNames;
 	char className[128];
 	int loadoutPosition[NUM_PLAYER_CLASSES];
 	
@@ -29,6 +30,7 @@ enum struct CustomItemDefinition {
 		delete this.source;
 		delete this.nativeAttributes;
 		delete this.customAttributes;
+		delete this.localizedNames;
 	}
 }
 
@@ -194,6 +196,12 @@ bool CreateItemFromSection(KeyValues config) {
 	if (config.JumpToKey("attributes_custom")) {
 		item.customAttributes = new KeyValues("attributes_custom");
 		item.customAttributes.Import(config);
+		config.GoBack();
+	}
+	
+	if (config.JumpToKey("localized_name")) {
+		item.localizedNames = new KeyValues("localized_name");
+		item.localizedNames.Import(config);
 		config.GoBack();
 	}
 	
