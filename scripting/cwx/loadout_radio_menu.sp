@@ -339,9 +339,11 @@ static int OnEquipMenuEvent(Menu menu, MenuAction action, int param1, int param2
 			int client = param1;
 			int position = param2;
 			
-			// TODO: support localization of item names
 			char uid[MAX_ITEM_IDENTIFIER_LENGTH], itemName[MAX_ITEM_NAME_LENGTH];
 			menu.GetItem(position, uid, sizeof(uid), _, itemName, sizeof(itemName));
+			
+			CustomItemDefinition item;
+			GetCustomItemDefinition(uid, item);
 			
 			int menuClass = g_iPlayerClassInMenu[client];
 			int menuSlot = g_iPlayerSlotInMenu[client];
@@ -354,6 +356,16 @@ static int OnEquipMenuEvent(Menu menu, MenuAction action, int param1, int param2
 			if (!uid[0]) {
 				FormatEx(itemName, sizeof(itemName), "%t", "UnequipCustomItem");
 				redraw = true;
+			} else if (item.localizedNames) {
+				// attempt to look up a localized name based on shortcode
+				char langcode[16], localizedName[MAX_ITEM_NAME_LENGTH];
+				GetLanguageInfo(GetClientLanguage(client), langcode, sizeof(langcode));
+				
+				item.localizedNames.GetString(langcode, localizedName, sizeof(localizedName));
+				if (localizedName[0]) {
+					strcopy(itemName, sizeof(itemName), localizedName);
+					redraw = true;
+				}
 			}
 			
 			if (equipped) {
