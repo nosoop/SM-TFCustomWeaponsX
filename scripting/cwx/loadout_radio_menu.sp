@@ -343,6 +343,9 @@ static int OnEquipMenuEvent(Menu menu, MenuAction action, int param1, int param2
 			char uid[MAX_ITEM_IDENTIFIER_LENGTH], itemName[MAX_ITEM_NAME_LENGTH];
 			menu.GetItem(position, uid, sizeof(uid), _, itemName, sizeof(itemName));
 			
+			CustomItemDefinition item;
+			GetCustomItemDefinition(uid, item);
+			
 			int menuClass = g_iPlayerClassInMenu[client];
 			int menuSlot = g_iPlayerSlotInMenu[client];
 			
@@ -354,6 +357,16 @@ static int OnEquipMenuEvent(Menu menu, MenuAction action, int param1, int param2
 			if (!uid[0]) {
 				FormatEx(itemName, sizeof(itemName), "%t", "UnequipCustomItem");
 				redraw = true;
+			} else if(item.localizedNames) {
+				char lang[16], text[MAX_ITEM_IDENTIFIER_LENGTH];
+				GetLanguageInfo(GetClientLanguage(client), lang, sizeof(lang), text, sizeof(text));
+				PrintToChat(client, "Le lang: %s", lang);
+				
+				item.localizedNames.GetString(lang, text, sizeof(text)); //We only need the language code
+				if(text[0] != '\0') { //Translation found for the player's language
+					strcopy(itemName, sizeof(itemName), text);
+					redraw = true;
+				}
 			}
 			
 			if (equipped) {
