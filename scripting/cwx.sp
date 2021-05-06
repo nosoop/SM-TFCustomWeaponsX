@@ -61,6 +61,8 @@ bool g_bForceReequipItems[MAXPLAYERS + 1];
 #include "cwx/item_export.sp"
 #include "cwx/loadout_radio_menu.sp"
 
+ConVar sm_cwx_allow;
+
 public void OnPluginStart() {
 	LoadTranslations("cwx.phrases");
 	LoadTranslations("common.phrases");
@@ -81,6 +83,8 @@ public void OnPluginStart() {
 			.post = OnPlayerLoadoutUpdatedPost);
 	
 	CreateVersionConVar("cwx_version", "Custom Weapons X version.");
+	
+	sm_cwx_allow = CreateConVar("sm_cwx_allow", "1", "Enable or disable the plugin's functionality.");
 	
 	RegAdminCmd("sm_cwx_equip", EquipItemCmd, ADMFLAG_ROOT);
 	RegAdminCmd("sm_cwx_equip_target", EquipItemCmdTarget, ADMFLAG_ROOT);
@@ -239,33 +243,35 @@ Action OnPlayerLoadoutUpdated(UserMsg msg_id, BfRead msg, const int[] players,
 }
 
 void OnPlayerLoadoutUpdatedPost(UserMsg msg_id, bool sent) {
-	int client = GetClientFromSerial(s_LastUpdatedClient);
-	int playerClass = view_as<int>(TF2_GetPlayerClass(client));
-	
-	for (int i; i < NUM_ITEMS; i++) {
-		if (!g_CurrentLoadout[client][playerClass][i][0]) {
-			// no item specified, use default
-			continue;
-		}
+	if (sm_cwx_allow.BoolValue) {
+		int client = GetClientFromSerial(s_LastUpdatedClient);
+		int playerClass = view_as<int>(TF2_GetPlayerClass(client));
 		
-		// equip our item if it isn't already equipped, or if it's being killed
-		// the latter applies to items that are normally invalid for the class
-		int currentLoadoutItem = g_CurrentLoadoutEntity[client][playerClass][i];
-		if (g_bForceReequipItems[client] || !IsValidEntity(currentLoadoutItem)
-				|| GetEntityFlags(currentLoadoutItem) & FL_KILLME) {
-			// TODO validate that the player can access this item
-			CustomItemDefinition item;
-			if (!GetCustomItemDefinition(g_CurrentLoadout[client][playerClass][i], item)) {
+		for (int i; i < NUM_ITEMS; i++) {
+			if (!g_CurrentLoadout[client][playerClass][i][0]) {
+				// no item specified, use default
 				continue;
 			}
 			
-			g_CurrentLoadoutEntity[client][playerClass][i] =
-					EntIndexToEntRef(EquipCustomItem(client, item));
+			// equip our item if it isn't already equipped, or if it's being killed
+			// the latter applies to items that are normally invalid for the class
+			int currentLoadoutItem = g_CurrentLoadoutEntity[client][playerClass][i];
+			if (g_bForceReequipItems[client] || !IsValidEntity(currentLoadoutItem)
+					|| GetEntityFlags(currentLoadoutItem) & FL_KILLME) {
+				// TODO validate that the player can access this item
+				CustomItemDefinition item;
+				if (!GetCustomItemDefinition(g_CurrentLoadout[client][playerClass][i], item)) {
+					continue;
+				}
+				
+				g_CurrentLoadoutEntity[client][playerClass][i] =
+						EntIndexToEntRef(EquipCustomItem(client, item));
+			}
 		}
+		
+		// TODO: switch to the correct slot if we're not holding anything
+		// as is the case again, this happens on non-valid-for-class items
 	}
-	
-	// TODO: switch to the correct slot if we're not holding anything
-	// as is the case again, this happens on non-valid-for-class items
 }
 
 void OnPlayerSpawnPost(Event event, const char[] name, bool dontBroadcast) {
@@ -281,6 +287,10 @@ void OnPlayerSpawnPost(Event event, const char[] name, bool dontBroadcast) {
  * avoid returning a nullptr.
  */
 MRESReturn OnGetLoadoutItemPost(int client, Handle hReturn, Handle hParams) {
+	if (!sm_cwx_allow.BoolValue) {
+		return MRES_Ignored;
+	}
+	
 	// TODO: work around invalid class items being invalidated
 	int playerClass = DHookGetParam(hParams, 1);
 	int loadoutSlot = DHookGetParam(hParams, 2);
@@ -358,6 +368,10 @@ public void OnClientCommandKeyValues_Post(int client, KeyValues kv) {
  * Saves the current item into the loadout for the specified class.
  */
 bool SetClientCustomLoadoutItem(int client, int playerClass, const char[] itemuid) {
+	if (!sm_cwx_allow.BoolValue) {
+		PrintToChat(client, "You have equipped a custom weapon. Unfortunately, this weapon has not been given to you because custom weapons are currently disabled.");
+	}
+
 	CustomItemDefinition item;
 	if (!GetCustomItemDefinition(itemuid, item)) {
 		return false;
