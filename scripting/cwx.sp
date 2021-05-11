@@ -56,12 +56,12 @@ Cookie g_ItemPersistCookies[NUM_PLAYER_CLASSES][NUM_ITEMS];
 
 bool g_bForceReequipItems[MAXPLAYERS + 1];
 
+ConVar sm_cwx_enable_loadout;
+
 #include "cwx/item_config.sp"
 #include "cwx/item_entity.sp"
 #include "cwx/item_export.sp"
 #include "cwx/loadout_radio_menu.sp"
-
-ConVar sm_cwx_allow;
 
 public void OnPluginStart() {
 	LoadTranslations("cwx.phrases");
@@ -84,7 +84,8 @@ public void OnPluginStart() {
 	
 	CreateVersionConVar("cwx_version", "Custom Weapons X version.");
 	
-	sm_cwx_allow = CreateConVar("sm_cwx_allow", "1", "Enable or disable the plugin's functionality.");
+	sm_cwx_enable_loadout = CreateConVar("sm_cwx_enable_loadout", "1",
+			"Allows players to receive custom items they have selected.");
 	
 	RegAdminCmd("sm_cwx_equip", EquipItemCmd, ADMFLAG_ROOT);
 	RegAdminCmd("sm_cwx_equip_target", EquipItemCmdTarget, ADMFLAG_ROOT);
@@ -243,7 +244,7 @@ Action OnPlayerLoadoutUpdated(UserMsg msg_id, BfRead msg, const int[] players,
 }
 
 void OnPlayerLoadoutUpdatedPost(UserMsg msg_id, bool sent) {
-	if (!sm_cwx_allow.BoolValue) {
+	if (!sm_cwx_enable_loadout.BoolValue) {
 		return;
 	}
 	
@@ -289,7 +290,7 @@ void OnPlayerSpawnPost(Event event, const char[] name, bool dontBroadcast) {
  * avoid returning a nullptr.
  */
 MRESReturn OnGetLoadoutItemPost(int client, Handle hReturn, Handle hParams) {
-	if (!sm_cwx_allow.BoolValue) {
+	if (!sm_cwx_enable_loadout.BoolValue) {
 		return MRES_Ignored;
 	}
 	
@@ -370,7 +371,7 @@ public void OnClientCommandKeyValues_Post(int client, KeyValues kv) {
  * Saves the current item into the loadout for the specified class.
  */
 bool SetClientCustomLoadoutItem(int client, int playerClass, const char[] itemuid) {
-	if (!sm_cwx_allow.BoolValue) {
+	if (!sm_cwx_enable_loadout.BoolValue) {
 		PrintToChat(client, "You have equipped a custom weapon. Unfortunately, this weapon has not been given to you because custom weapons are currently disabled.");
 	}
 
