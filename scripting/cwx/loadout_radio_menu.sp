@@ -200,8 +200,12 @@ static int OnLoadoutSlotMenuEvent(Menu menu, MenuAction action, int param1, int 
 			
 			SetGlobalTransTarget(client);
 			
-			char buffer[64];
+			char buffer[192];
 			FormatEx(buffer, sizeof(buffer), "Custom Weapons X");
+			
+			if (!sm_cwx_enable_loadout.BoolValue) {
+				Format(buffer, sizeof(buffer), "%s\n%t", buffer, "CustomItemsUnavailable");
+			}
 			
 			panel.SetTitle(buffer);
 			

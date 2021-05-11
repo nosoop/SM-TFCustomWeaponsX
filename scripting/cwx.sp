@@ -371,10 +371,6 @@ public void OnClientCommandKeyValues_Post(int client, KeyValues kv) {
  * Saves the current item into the loadout for the specified class.
  */
 bool SetClientCustomLoadoutItem(int client, int playerClass, const char[] itemuid) {
-	if (!sm_cwx_enable_loadout.BoolValue) {
-		PrintToChat(client, "You have equipped a custom weapon. Unfortunately, this weapon has not been given to you because custom weapons are currently disabled.");
-	}
-
 	CustomItemDefinition item;
 	if (!GetCustomItemDefinition(itemuid, item)) {
 		return false;
@@ -409,6 +405,11 @@ void UnsetClientCustomLoadoutItem(int client, int playerClass, int itemSlot) {
 void OnClientCustomLoadoutItemModified(int client, int modifiedClass) {
 	if (view_as<int>(TF2_GetPlayerClass(client)) != modifiedClass) {
 		// do nothing if the loadout for the current class wasn't modified
+		return;
+	}
+	
+	if (!sm_cwx_enable_loadout.BoolValue) {
+		// do nothing if user selections are disabled
 		return;
 	}
 	
