@@ -243,35 +243,37 @@ Action OnPlayerLoadoutUpdated(UserMsg msg_id, BfRead msg, const int[] players,
 }
 
 void OnPlayerLoadoutUpdatedPost(UserMsg msg_id, bool sent) {
-	if (sm_cwx_allow.BoolValue) {
-		int client = GetClientFromSerial(s_LastUpdatedClient);
-		int playerClass = view_as<int>(TF2_GetPlayerClass(client));
+	if (!sm_cwx_allow.BoolValue) {
+		return;
+	}
+	
+	int client = GetClientFromSerial(s_LastUpdatedClient);
+	int playerClass = view_as<int>(TF2_GetPlayerClass(client));
+	
+	for (int i; i < NUM_ITEMS; i++) {
+		if (!g_CurrentLoadout[client][playerClass][i][0]) {
+			// no item specified, use default
+			continue;
+		}
 		
-		for (int i; i < NUM_ITEMS; i++) {
-			if (!g_CurrentLoadout[client][playerClass][i][0]) {
-				// no item specified, use default
+		// equip our item if it isn't already equipped, or if it's being killed
+		// the latter applies to items that are normally invalid for the class
+		int currentLoadoutItem = g_CurrentLoadoutEntity[client][playerClass][i];
+		if (g_bForceReequipItems[client] || !IsValidEntity(currentLoadoutItem)
+				|| GetEntityFlags(currentLoadoutItem) & FL_KILLME) {
+			// TODO validate that the player can access this item
+			CustomItemDefinition item;
+			if (!GetCustomItemDefinition(g_CurrentLoadout[client][playerClass][i], item)) {
 				continue;
 			}
 			
-			// equip our item if it isn't already equipped, or if it's being killed
-			// the latter applies to items that are normally invalid for the class
-			int currentLoadoutItem = g_CurrentLoadoutEntity[client][playerClass][i];
-			if (g_bForceReequipItems[client] || !IsValidEntity(currentLoadoutItem)
-					|| GetEntityFlags(currentLoadoutItem) & FL_KILLME) {
-				// TODO validate that the player can access this item
-				CustomItemDefinition item;
-				if (!GetCustomItemDefinition(g_CurrentLoadout[client][playerClass][i], item)) {
-					continue;
-				}
-				
-				g_CurrentLoadoutEntity[client][playerClass][i] =
-						EntIndexToEntRef(EquipCustomItem(client, item));
-			}
+			g_CurrentLoadoutEntity[client][playerClass][i] =
+					EntIndexToEntRef(EquipCustomItem(client, item));
 		}
-		
-		// TODO: switch to the correct slot if we're not holding anything
-		// as is the case again, this happens on non-valid-for-class items
 	}
+	
+	// TODO: switch to the correct slot if we're not holding anything
+	// as is the case again, this happens on non-valid-for-class items
 }
 
 void OnPlayerSpawnPost(Event event, const char[] name, bool dontBroadcast) {
