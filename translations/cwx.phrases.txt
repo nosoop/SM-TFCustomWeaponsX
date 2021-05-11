@@ -929,4 +929,8 @@
 	{
 		"en" "[No custom item]"
 	}
+	"CustomItemsUnavailable"
+	{
+		"en" "(Custom items are currently disabled by the server operator.)"
+	}
 }

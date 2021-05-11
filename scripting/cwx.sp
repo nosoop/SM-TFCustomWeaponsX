@@ -56,6 +56,8 @@ Cookie g_ItemPersistCookies[NUM_PLAYER_CLASSES][NUM_ITEMS];
 
 bool g_bForceReequipItems[MAXPLAYERS + 1];
 
+ConVar sm_cwx_enable_loadout;
+
 #include "cwx/item_config.sp"
 #include "cwx/item_entity.sp"
 #include "cwx/item_export.sp"
@@ -81,6 +83,9 @@ public void OnPluginStart() {
 			.post = OnPlayerLoadoutUpdatedPost);
 	
 	CreateVersionConVar("cwx_version", "Custom Weapons X version.");
+	
+	sm_cwx_enable_loadout = CreateConVar("sm_cwx_enable_loadout", "1",
+			"Allows players to receive custom items they have selected.");
 	
 	RegAdminCmd("sm_cwx_equip", EquipItemCmd, ADMFLAG_ROOT);
 	RegAdminCmd("sm_cwx_equip_target", EquipItemCmdTarget, ADMFLAG_ROOT);
@@ -239,6 +244,10 @@ Action OnPlayerLoadoutUpdated(UserMsg msg_id, BfRead msg, const int[] players,
 }
 
 void OnPlayerLoadoutUpdatedPost(UserMsg msg_id, bool sent) {
+	if (!sm_cwx_enable_loadout.BoolValue) {
+		return;
+	}
+	
 	int client = GetClientFromSerial(s_LastUpdatedClient);
 	int playerClass = view_as<int>(TF2_GetPlayerClass(client));
 	
@@ -281,6 +290,10 @@ void OnPlayerSpawnPost(Event event, const char[] name, bool dontBroadcast) {
  * avoid returning a nullptr.
  */
 MRESReturn OnGetLoadoutItemPost(int client, Handle hReturn, Handle hParams) {
+	if (!sm_cwx_enable_loadout.BoolValue) {
+		return MRES_Ignored;
+	}
+	
 	// TODO: work around invalid class items being invalidated
 	int playerClass = DHookGetParam(hParams, 1);
 	int loadoutSlot = DHookGetParam(hParams, 2);
@@ -392,6 +405,11 @@ void UnsetClientCustomLoadoutItem(int client, int playerClass, int itemSlot) {
 void OnClientCustomLoadoutItemModified(int client, int modifiedClass) {
 	if (view_as<int>(TF2_GetPlayerClass(client)) != modifiedClass) {
 		// do nothing if the loadout for the current class wasn't modified
+		return;
+	}
+	
+	if (!sm_cwx_enable_loadout.BoolValue) {
+		// do nothing if user selections are disabled
 		return;
 	}
 	
