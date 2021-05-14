@@ -7,7 +7,7 @@
  */
 Action ExportActiveWeapon(int client, int argc) {
 	// TODO we should allow loadout slot selection
-	int weapon = TF2_GetClientActiveWeapon(client);
+	int weapon = TF2Util_GetWeaponID(client);
 	if (!IsValidEntity(weapon)) {
 		ReplyToCommand(client, "No active weapon to export.");
 		return Plugin_Handled;
