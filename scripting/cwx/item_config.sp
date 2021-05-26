@@ -34,6 +34,9 @@ enum struct CustomItemDefinition {
 	}
 }
 
+/**
+ * Holds a uid to CustomItemDefinition mapping.
+ */
 static StringMap g_CustomItems;
 
 void LoadCustomItemConfig() {
@@ -218,8 +221,8 @@ StringMapSnapshot GetCustomItemList() {
 }
 
 /**
- * Builds the UID-to-loadout-position mapping, so the plugin knows which weapons can be rendered
- * in which menus.
+ * Builds the loadout position array for the item, so the plugin knows which weapons can be
+ * rendered in loadout menus and which loadout slot they will be stored in within the database.
  */
 static bool ComputeEquipSlotPosition(KeyValues kv, int itemdef,
 		int loadoutPosition[NUM_PLAYER_CLASSES]) {

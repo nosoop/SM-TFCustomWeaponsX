@@ -36,6 +36,7 @@ public Plugin myinfo = {
 // this is the maximum expected length of our UID
 #define MAX_ITEM_IDENTIFIER_LENGTH 64
 
+// this is the maximum length of the item name displayed to players
 #define MAX_ITEM_NAME_LENGTH 128
 
 // this is the number of slots allocated to our thing
@@ -147,10 +148,15 @@ public void OnClientConnected(int client) {
 }
 
 public void OnClientAuthorized(int client, const char[] auth) {
-	// TODO request item information from backing storage
 	FetchLoadoutItems(client);
 }
 
+/**
+ * Called when we know our client is valid.  Retrieve our loadout from our storage backend.
+ * 
+ * `g_bRetrievedLoadout[client]` should be set once our loadout is retrieved, which may happen
+ * asynchronously.
+ */
 void FetchLoadoutItems(int client) {
 	if (AreClientCookiesCached(client)) {
 		OnClientCookiesCached(client);
@@ -237,12 +243,27 @@ Action EquipItemCmdTarget(int client, int argc) {
 
 int s_LastUpdatedClient;
 
+/**
+ * Called once the game has updated the player's loadout with all the weapons it wanted, but
+ * before the post_inventory_application event is fired.
+ * 
+ * As other plugins may perform actions in response to our equip events, we have to wait until
+ * after the usermessage is sent before we can run our own logic.
+ */
 Action OnPlayerLoadoutUpdated(UserMsg msg_id, BfRead msg, const int[] players,
 		int playersNum, bool reliable, bool init) {
 	int client = msg.ReadByte();
 	s_LastUpdatedClient = GetClientSerial(client);
 }
 
+/**
+ * Called once the game has updated the player's loadout with all the weapons it wanted, but
+ * before the post_inventory_application event is fired.
+ * 
+ * This is the point where we check our custom loadout settings, then create our items if
+ * necessary (because persistence is implemented, the player may already have our custom items,
+ * and we keep track of them so we don't unnecessarily reequip them).
+ */
 void OnPlayerLoadoutUpdatedPost(UserMsg msg_id, bool sent) {
 	if (!sm_cwx_enable_loadout.BoolValue) {
 		return;
@@ -390,6 +411,9 @@ bool SetClientCustomLoadoutItem(int client, int playerClass, const char[] itemui
 	return true;
 }
 
+/**
+ * Unsets any existing item in the given loadout slot for the specified class.
+ */
 void UnsetClientCustomLoadoutItem(int client, int playerClass, int itemSlot) {
 	strcopy(g_CurrentLoadout[client][playerClass][itemSlot],
 				sizeof(g_CurrentLoadout[][][]), "");
@@ -421,6 +445,10 @@ void OnClientCustomLoadoutItemModified(int client, int modifiedClass) {
 	}
 }
 
+/**
+ * Called after inventory change and  we have the client's tf_respawn_on_loadoutchanges convar
+ * value.  Respawn them if desired.
+ */
 void OnLoadoutRespawnPreference(QueryCookie cookie, int client, ConVarQueryResult result,
 		const char[] cvarName, const char[] cvarValue) {
 	if (result != ConVarQuery_Okay) {
@@ -450,6 +478,10 @@ bool CanPlayerEquipItem(int client, const CustomItemDefinition item) {
 	return true;
 }
 
+/**
+ * Returns whether or not the player is in a respawn room that their team owns, for the purpose
+ * of repsawning on loadout change.
+ */
 static bool IsPlayerInRespawnRoom(int client) {
 	float vecMins[3], vecMaxs[3], vecCenter[3], vecOrigin[3];
 	GetClientMins(client, vecMins);
