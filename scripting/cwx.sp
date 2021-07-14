@@ -437,7 +437,7 @@ void OnClientCustomLoadoutItemModified(int client, int modifiedClass) {
 		return;
 	}
 	
-	if (IsPlayerInRespawnRoom(client) && IsPlayerAlive(client)) {
+	if (IsPlayerAllowedToRespawnOnLoadoutChange(client)) {
 		// see if the player is into being respawned on loadout changes
 		QueryClientConVar(client, "tf_respawn_on_loadoutchanges", OnLoadoutRespawnPreference);
 	} else {
@@ -453,7 +453,7 @@ void OnLoadoutRespawnPreference(QueryCookie cookie, int client, ConVarQueryResul
 		const char[] cvarName, const char[] cvarValue) {
 	if (result != ConVarQuery_Okay) {
 		return;
-	} else if (!StringToInt(cvarValue) || !IsPlayerInRespawnRoom(client)) {
+	} else if (!StringToInt(cvarValue) || !IsPlayerAllowedToRespawnOnLoadoutChange(client)) {
 		// the second check for respawn room is in case we're somehow not in one between
 		// the query and the callback
 		PrintToChat(client, "%t", "LoadoutChangesUpdate");
@@ -491,4 +491,22 @@ static bool IsPlayerInRespawnRoom(int client) {
 	GetCenterFromPoints(vecMins, vecMaxs, vecCenter);
 	AddVectors(vecOrigin, vecCenter, vecCenter);
 	return TF2Util_IsPointInRespawnRoom(vecCenter, client, true);
+}
+
+/**
+ * Returns whether or not the player is allowed to respawn on loadout changes.
+ */
+static bool IsPlayerAllowedToRespawnOnLoadoutChange(int client) {
+	if (!IsClientInGame(client) || !IsPlayerInRespawnRoom(client) || !IsPlayerAlive(client)) {
+		return false;
+	}
+	
+	// prevent respawns on sudden death
+	// ideally we'd base this off of CTFGameRules::CanChangeClassInStalemate(), but that
+	// requires either gamedata or keeping track of the stalemate time ourselves
+	if (GameRules_GetRoundState() == RoundState_Stalemate) {
+		return false;
+	}
+	
+	return true;
 }
