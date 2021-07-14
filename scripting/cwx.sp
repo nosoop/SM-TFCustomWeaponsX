@@ -59,10 +59,14 @@ bool g_bForceReequipItems[MAXPLAYERS + 1];
 
 ConVar sm_cwx_enable_loadout;
 
+ConVar mp_stalemate_meleeonly;
+
 #include "cwx/item_config.sp"
 #include "cwx/item_entity.sp"
 #include "cwx/item_export.sp"
 #include "cwx/loadout_radio_menu.sp"
+
+int g_attrdef_AllowedInMedievalMode;
 
 public void OnPluginStart() {
 	LoadTranslations("cwx.phrases");
@@ -99,6 +103,8 @@ public void OnPluginStart() {
 	AddCommandListener(DisplayItemsCompat, "sm_cus");
 	AddCommandListener(DisplayItemsCompat, "sm_custom");
 	
+	mp_stalemate_meleeonly = FindConVar("mp_stalemate_meleeonly");
+	
 	// TODO: I'd like to use a separate, independent database for this
 	// but leveraging the cookie system is easier for now
 	char cookieName[64], cookieDesc[128];
@@ -126,6 +132,9 @@ public void OnPluginStart() {
 
 public void OnAllPluginsLoaded() {
 	BuildLoadoutSlotMenu();
+	
+	g_attrdef_AllowedInMedievalMode =
+			TF2Econ_TranslateAttributeNameToDefinitionIndex("allowed in medieval mode");
 }
 
 public void OnMapStart() {
@@ -286,6 +295,10 @@ void OnPlayerLoadoutUpdatedPost(UserMsg msg_id, bool sent) {
 			// TODO validate that the player can access this item
 			CustomItemDefinition item;
 			if (!GetCustomItemDefinition(g_CurrentLoadout[client][playerClass][i], item)) {
+				continue;
+			}
+			
+			if (!IsCustomItemAllowed(client, item)) {
 				continue;
 			}
 			
@@ -508,5 +521,64 @@ static bool IsPlayerAllowedToRespawnOnLoadoutChange(int client) {
 		return false;
 	}
 	
+	return true;
+}
+
+/**
+ * Returns whether or not the custom item is currently allowed.  This is specifically for
+ * instances where the item may be temporarily restricted (Medieval, melee-only Sudden Death).
+ */
+static bool IsCustomItemAllowed(int client, const CustomItemDefinition item) {
+	if (!IsClientInGame(client)) {
+		return false;
+	}
+	
+	TFClassType playerClass = TF2_GetPlayerClass(client);
+	int slot = item.loadoutPosition[playerClass];
+	
+	// TODO work out other restrictions?
+	
+	if (GameRules_GetRoundState() == RoundState_Stalemate && mp_stalemate_meleeonly.BoolValue) {
+		bool bMelee = slot == 2 || (playerClass == TFClass_Spy && (slot == 5 || slot == 6));
+		if (!bMelee) {
+			return false;
+		}
+	}
+	
+	if (GameRules_GetProp("m_bPlayingMedieval")) {
+		bool bMedievalAllowed;
+		if (slot == 2) {
+			bMedievalAllowed = true;
+		}
+		
+		if (!bMedievalAllowed) {
+			// non-melee item; time to check the schema...
+			bool bMedievalAllowedInSchema;
+			
+			bool bNativeAttributeOverride;
+			if (item.nativeAttributes) {
+				char configValue[8];
+				item.nativeAttributes.GetString("allowed in medieval mode",
+						configValue, sizeof(configValue));
+				
+				if (configValue[0]) {
+					// don't fallback to static attributes if override in config
+					bNativeAttributeOverride = true;
+					bMedievalAllowedInSchema = !!StringToInt(configValue);
+				}
+			}
+			if (!bNativeAttributeOverride && item.bKeepStaticAttributes) {
+				// TODO we should cache this...
+				ArrayList attribList = TF2Econ_GetItemStaticAttributes(item.defindex);
+				bMedievalAllowedInSchema =
+						attribList.FindValue(g_attrdef_AllowedInMedievalMode) != -1;
+				delete attribList;
+			}
+			
+			if (!bMedievalAllowedInSchema) {
+				return false;
+			}
+		}
+	}
 	return true;
 }
