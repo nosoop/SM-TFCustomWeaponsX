@@ -85,6 +85,7 @@ void LoadCustomItemConfig() {
 		
 		delete importKV;
 	}
+	delete configFiles;
 	
 	// TODO add a forward that allows other plugins to hook registered attribute names and
 	// precache any resources
