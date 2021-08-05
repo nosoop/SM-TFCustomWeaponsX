@@ -2,6 +2,8 @@
  * Contains functionality for the item config.
  */
 
+#include <stocksoup/files>
+
 enum struct CustomItemDefinition {
 	KeyValues source;
 	
@@ -48,42 +50,40 @@ void LoadCustomItemConfig() {
 	itemSchema.ImportFromFile(schemaPath);
 	
 	char schemaDir[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, schemaDir, sizeof(schemaDir), "configs/%s", "cwx/");
-	DirectoryListing cwxConfigs = OpenDirectory(schemaDir, false);
+	BuildPath(Path_SM, schemaDir, sizeof(schemaDir), "configs/%s", "cwx");
 	
-	if (cwxConfigs) {
-		// find files within `configs/cwx/` and import them, too
-		FileType ftype;
-		char schemaRelPath[PLATFORM_MAX_PATH];
-		while (cwxConfigs.GetNext(schemaRelPath, sizeof(schemaRelPath), ftype)) {
-			if (ftype != FileType_File) {
-				continue;
-			}
-			
-			BuildPath(Path_SM, schemaPath, sizeof(schemaPath), "configs/cwx/%s", schemaRelPath);
-			
-			KeyValues importKV = new KeyValues("import");
-			importKV.ImportFromFile(schemaPath);
-			
-			char uid[MAX_ITEM_IDENTIFIER_LENGTH];
-			importKV.GotoFirstSubKey(false);
-			do {
-				importKV.GetSectionName(uid, sizeof(uid));
-				if (importKV.GetDataType(NULL_STRING) == KvData_None) {
-					if (itemSchema.JumpToKey(uid)) {
-						LogMessage("Item uid %s already exists in schema, ignoring entry in %s",
-								uid, schemaRelPath);
-					} else {
-						itemSchema.JumpToKey(uid, true);
-						itemSchema.Import(importKV);
-					}
-					itemSchema.GoBack();
-				}
-			} while (importKV.GotoNextKey(false));
-			importKV.GoBack();
-			
-			delete importKV;
+	// find files within `configs/cwx/` and import them, too
+	ArrayList configFiles = GetFilesInDirectoryRecursive(schemaDir);
+	for (int i, n = configFiles.Length; i < n; i++) {
+		configFiles.GetString(i, schemaPath, sizeof(schemaPath));
+		NormalizePathToPOSIX(schemaPath);
+		
+		// skip files in directories named "disabled", much like SourceMod
+		if (StrContains(schemaPath, "/disabled/") != -1) {
+			continue;
 		}
+		
+		KeyValues importKV = new KeyValues("import");
+		importKV.ImportFromFile(schemaPath);
+		
+		char uid[MAX_ITEM_IDENTIFIER_LENGTH];
+		importKV.GotoFirstSubKey(false);
+		do {
+			importKV.GetSectionName(uid, sizeof(uid));
+			if (importKV.GetDataType(NULL_STRING) == KvData_None) {
+				if (itemSchema.JumpToKey(uid)) {
+					LogMessage("Item uid %s already exists in schema, ignoring entry in %s",
+							uid, schemaPath);
+				} else {
+					itemSchema.JumpToKey(uid, true);
+					itemSchema.Import(importKV);
+				}
+				itemSchema.GoBack();
+			}
+		} while (importKV.GotoNextKey(false));
+		importKV.GoBack();
+		
+		delete importKV;
 	}
 	
 	// TODO add a forward that allows other plugins to hook registered attribute names and
