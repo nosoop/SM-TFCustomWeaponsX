@@ -31,6 +31,18 @@ stock int TF2_CreateItem(int defindex, const char[] itemClass) {
  */
 bool TF2_RemoveItemByLoadoutSlot(int client, int loadoutSlot) {
 	int item = TF2Util_GetPlayerLoadoutEntity(client, loadoutSlot);
+	
+	if (!IsValidEntity(item)) {
+		// try harder -- check if any off-class wearable matches, since GPLE only handles native
+		for (int i, n = TF2Util_GetPlayerWearableCount(client); i < n; i++) {
+			int wearable = TF2Util_GetPlayerWearable(client, i);
+			int itemdef = TF2_GetItemDefinitionIndex(wearable);
+			if (TF2Econ_GetItemDefaultLoadoutSlot(itemdef) == loadoutSlot) {
+				item = wearable;
+			}
+		}
+	}
+	
 	if (!IsValidEntity(item)) {
 		return false;
 	}
