@@ -68,6 +68,8 @@ ConVar mp_stalemate_meleeonly;
 
 int g_attrdef_AllowedInMedievalMode;
 
+any offs_CTFPlayer_m_bRegenerating;
+
 public void OnPluginStart() {
 	LoadTranslations("cwx.phrases");
 	LoadTranslations("common.phrases");
@@ -104,6 +106,13 @@ public void OnPluginStart() {
 	AddCommandListener(DisplayItemsCompat, "sm_custom");
 	
 	mp_stalemate_meleeonly = FindConVar("mp_stalemate_meleeonly");
+	
+	any offs_CTFPlayer_m_hItem = FindSendPropInfo("CTFPlayer", "m_hItem");
+	if (!offs_CTFPlayer_m_hItem) {
+		SetFailState("Failed to resolve member offset CTFPlayer::m_bRegenerating");
+	}
+	
+	offs_CTFPlayer_m_bRegenerating = offs_CTFPlayer_m_hItem - 5;
 	
 	// TODO: I'd like to use a separate, independent database for this
 	// but leveraging the cookie system is easier for now
@@ -472,7 +481,16 @@ void OnLoadoutRespawnPreference(QueryCookie cookie, int client, ConVarQueryResul
 		PrintToChat(client, "%t", "LoadoutChangesUpdate");
 		return;
 	}
+	
+	// mark player as regenerating during respawn -- this prevents stickies from despawning
+	// this matches the game's internal behavior during GC loadout changes
+	SetPlayerRegenerationState(client, true);
 	TF2_RespawnPlayer(client);
+	SetPlayerRegenerationState(client, false);
+}
+
+void SetPlayerRegenerationState(int client, bool value) {
+	SetEntData(client, offs_CTFPlayer_m_bRegenerating, value, .size = 1);
 }
 
 /**
