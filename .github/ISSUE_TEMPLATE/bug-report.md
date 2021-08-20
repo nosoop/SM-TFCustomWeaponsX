@@ -9,12 +9,9 @@ assignees: ''
 
 **Pre-flight checklist**
 
-- [ ] I am only describing a single issue.  (If you want to report multiple, please file them
-  individually so they can be referenced and closed separately.)
-- [ ] I have upgraded to the latest version of CWX and its dependencies; the issue still
-  persists.
-- [ ] I have verified that the issue is specific to CWX, and have ruled out other plugins that
-  work indirectly with CWX (e.g. attributes).
+- [ ] I am only describing a single issue.  (If you want to report multiple, please file them individually so they can be referenced and closed separately.)
+- [ ] I have upgraded to the latest version of CWX and its dependencies; the issue still persists.
+- [ ] I have verified that the issue is specific to CWX, and have ruled out other plugins that work indirectly with CWX (e.g. attributes).
 
 **Environment**
 
@@ -38,8 +35,8 @@ assignees: ''
 **Other information**
 
 <!--
-  If the problem involves or can be replicated with a custom item definition, please attach a
-  minimal item file.
+  If the problem involves or can be replicated with a custom item definition, please attach a minimal item file.
+  If any errors are reported are produced in the server console, please provide those as well.
   
   Run the below commands and provide the results, immediately before or after replicating:
   `sm exts list; sm plugins list;`
