@@ -17,7 +17,7 @@
 		// "item_class"	"tf_weapon_flamethrower"
 		
 		//// manually defined loadout slot, for listing in the correct menu and for inventory storage
-		//// "inherits" automatically determines this if provided.
+		//// "inherits" automatically determines this if provided, but if this section is also present, it will be used in place of what "inherits" would provide
 		//// if manually defined, this MUST match the loadout slot for the item classname!
 		//// you *cannot* specify your own slot and expect a weapon to work in a different slot than it was designed for
 		// "used_by_classes"
@@ -43,7 +43,9 @@
 		{
 			"airblast projectiles restores health"		"30"
 			"airblast projectiles adds self condition"	"condition=32 duration=10"
-			"clientmodel override"						"models/weapons/c_models/c_firkin_flamer/c_firkin_flamer.mdl"
+			
+			// commented out below in case the below attribute exists
+			// "clientmodel override"					"models/weapons/c_models/c_firkin_flamer/c_firkin_flamer.mdl"
 		}
 	}
 	"{e1bc546e-b0b7-41c5-bc5e-8257406d575c}"
@@ -54,7 +56,7 @@
 		"attributes_game"
 		{
 			// string attributes work too, as long as the client doesn't read them
-			// you can't use things like "custom name attr"
+			// you can't set things like "custom name attr"
 			"custom projectile model"					"models/weapons/c_models/c_grenadelauncher/c_grenadelauncher.mdl"
 		}
 	}
