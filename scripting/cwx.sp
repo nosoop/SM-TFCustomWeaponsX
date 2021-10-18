@@ -46,12 +46,29 @@ public Plugin myinfo = {
 // otherwise it'll warn on array-based enumstruct
 #define NUM_PLAYER_CLASSES 10
 
-bool g_bRetrievedLoadout[MAXPLAYERS + 1];
-char g_CurrentLoadout[MAXPLAYERS + 1][NUM_PLAYER_CLASSES][NUM_ITEMS][MAX_ITEM_IDENTIFIER_LENGTH];
+enum struct LoadoutEntry {
+	char uid[MAX_ITEM_IDENTIFIER_LENGTH];
+	
+	// loadout entity, for persistence
+	// note for the future: we do *not* restore this on late load since the schema may have changed
+	int entity;
+	
+	void SetItemUID(const char[] other_uid) {
+		strcopy(this.uid, MAX_ITEM_IDENTIFIER_LENGTH, other_uid);
+	}
+	
+	bool IsEmpty() {
+		return !this.uid[0];
+	}
+	
+	void Clear() {
+		this.entity = INVALID_ENT_REFERENCE;
+		this.uid = "";
+	}
+}
 
-// loadout entity, for persistence
-// note for the future: we do *not* restore this on late load since the schema may have changed
-int g_CurrentLoadoutEntity[MAXPLAYERS + 1][NUM_PLAYER_CLASSES][NUM_ITEMS];
+bool g_bRetrievedLoadout[MAXPLAYERS + 1];
+LoadoutEntry g_CurrentLoadout[MAXPLAYERS + 1][NUM_PLAYER_CLASSES][NUM_ITEMS];
 
 Cookie g_ItemPersistCookies[NUM_PLAYER_CLASSES][NUM_ITEMS];
 
@@ -161,8 +178,7 @@ public void OnClientConnected(int client) {
 	g_bRetrievedLoadout[client] = false;
 	for (int c; c < NUM_PLAYER_CLASSES; c++) {
 		for (int i; i < NUM_ITEMS; i++) {
-			g_CurrentLoadout[client][c][i] = "";
-			g_CurrentLoadoutEntity[client][c][i] = INVALID_ENT_REFERENCE;
+			g_CurrentLoadout[client][c][i].Clear();
 		}
 	}
 }
@@ -186,8 +202,8 @@ void FetchLoadoutItems(int client) {
 public void OnClientCookiesCached(int client) {
 	for (int c; c < NUM_PLAYER_CLASSES; c++) {
 		for (int i; i < NUM_ITEMS; i++) {
-			g_ItemPersistCookies[c][i].Get(client, g_CurrentLoadout[client][c][i],
-					sizeof(g_CurrentLoadout[][][]));
+			g_ItemPersistCookies[c][i].Get(client, g_CurrentLoadout[client][c][i].uid,
+					sizeof(g_CurrentLoadout[][][].uid));
 		}
 	}
 	g_bRetrievedLoadout[client] = true;
@@ -297,19 +313,19 @@ void OnPlayerLoadoutUpdatedPost(UserMsg msg_id, bool sent) {
 	int playerClass = view_as<int>(TF2_GetPlayerClass(client));
 	
 	for (int i; i < NUM_ITEMS; i++) {
-		if (!g_CurrentLoadout[client][playerClass][i][0]) {
+		if (g_CurrentLoadout[client][playerClass][i].IsEmpty()) {
 			// no item specified, use default
 			continue;
 		}
 		
 		// equip our item if it isn't already equipped, or if it's being killed
 		// the latter applies to items that are normally invalid for the class
-		int currentLoadoutItem = g_CurrentLoadoutEntity[client][playerClass][i];
+		int currentLoadoutItem = g_CurrentLoadout[client][playerClass][i].entity;
 		if (g_bForceReequipItems[client] || !IsValidEntity(currentLoadoutItem)
 				|| GetEntityFlags(currentLoadoutItem) & FL_KILLME) {
 			// TODO validate that the player can access this item
 			CustomItemDefinition item;
-			if (!GetCustomItemDefinition(g_CurrentLoadout[client][playerClass][i], item)) {
+			if (!GetCustomItemDefinition(g_CurrentLoadout[client][playerClass][i].uid, item)) {
 				continue;
 			}
 			
@@ -317,7 +333,7 @@ void OnPlayerLoadoutUpdatedPost(UserMsg msg_id, bool sent) {
 				continue;
 			}
 			
-			g_CurrentLoadoutEntity[client][playerClass][i] =
+			g_CurrentLoadout[client][playerClass][i].entity =
 					EntIndexToEntRef(EquipCustomItem(client, item));
 		}
 	}
@@ -358,12 +374,12 @@ MRESReturn OnGetLoadoutItemPost(int client, Handle hReturn, Handle hParams) {
 		return MRES_Ignored;
 	}
 	
-	int storedItem = g_CurrentLoadoutEntity[client][playerClass][loadoutSlot];
+	int storedItem = g_CurrentLoadout[client][playerClass][loadoutSlot].entity;
 	if (!IsValidEntity(storedItem) || !HasEntProp(storedItem, Prop_Send, "m_Item")) {
 		// the loadout entity we keep track of isn't valid, so we may need to make one
 		// we expect to have to equip something new at this point
 		
-		if (!g_CurrentLoadout[client][playerClass][loadoutSlot][0]) {
+		if (g_CurrentLoadout[client][playerClass][loadoutSlot].IsEmpty()) {
 			// we don't have nor want a custom item; let the game process it
 			return MRES_Ignored;
 		}
@@ -403,7 +419,7 @@ public Action OnClientCommandKeyValues(int client, KeyValues kv) {
 	 * this is fine since TF2 manages to reapply upgrades to plugin-granted items.
 	 * 
 	 * The player gets their loadout changed multiple times during respec so we can't just
-	 * invalidate the reference in g_CurrentLoadoutEntity (since it'll be valid after the first
+	 * invalidate the reference in LoadoutEntry.entity (since it'll be valid after the first
 	 * change).
 	 * 
 	 * Hopefully nobody's blocking "MVM_Respec", because that would leave this flag set.
@@ -435,10 +451,9 @@ bool SetClientCustomLoadoutItem(int client, int playerClass, const char[] itemui
 	
 	int itemSlot = item.loadoutPosition[playerClass];
 	if (0 <= itemSlot < NUM_ITEMS) {
-		strcopy(g_CurrentLoadout[client][playerClass][itemSlot],
-				sizeof(g_CurrentLoadout[][][]), itemuid);
+		g_CurrentLoadout[client][playerClass][itemSlot].SetItemUID(itemuid);
 		g_ItemPersistCookies[playerClass][itemSlot].Set(client, itemuid);
-		g_CurrentLoadoutEntity[client][playerClass][itemSlot] = INVALID_ENT_REFERENCE;
+		g_CurrentLoadout[client][playerClass][itemSlot].entity = INVALID_ENT_REFERENCE;
 	} else {
 		return false;
 	}
@@ -451,10 +466,8 @@ bool SetClientCustomLoadoutItem(int client, int playerClass, const char[] itemui
  * Unsets any existing item in the given loadout slot for the specified class.
  */
 void UnsetClientCustomLoadoutItem(int client, int playerClass, int itemSlot) {
-	strcopy(g_CurrentLoadout[client][playerClass][itemSlot],
-				sizeof(g_CurrentLoadout[][][]), "");
+	g_CurrentLoadout[client][playerClass][itemSlot].Clear();
 	g_ItemPersistCookies[playerClass][itemSlot].Set(client, "");
-	g_CurrentLoadoutEntity[client][playerClass][itemSlot] = INVALID_ENT_REFERENCE;
 	
 	OnClientCustomLoadoutItemModified(client, playerClass);
 }

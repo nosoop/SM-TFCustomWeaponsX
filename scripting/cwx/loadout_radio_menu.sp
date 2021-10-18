@@ -352,7 +352,7 @@ static int OnEquipMenuEvent(Menu menu, MenuAction action, int param1, int param2
 			int menuClass = g_iPlayerClassInMenu[client];
 			int menuSlot = g_iPlayerSlotInMenu[client];
 			
-			bool equipped = StrEqual(g_CurrentLoadout[client][menuClass][menuSlot], uid);
+			bool equipped = StrEqual(g_CurrentLoadout[client][menuClass][menuSlot].uid, uid);
 			
 			SetGlobalTransTarget(client);
 			
