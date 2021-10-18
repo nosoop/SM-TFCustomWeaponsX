@@ -13,18 +13,23 @@ This was not a sponsored project.
 Same as previous iterations of Custom Weapons:
 
 - A text-based configuration format for server operators to create new items with.
+  - However, the format is different and not completely compatible.
 - A (newly localized) menu system for players to build their loadouts.
+  - Know any languages?  Please help localize by sending a pull request!  Many of the
+  localizations are copied straight from the game files, but there are custom messages that are
+  not.
 - Support for equipping wearable weapons such as shields and boots.
 
 New to CWX:
 
-- Dropped custom items can be picked up like any other item.
+- Dropped custom items can be picked up like any other item, and will retain their attributes
+(assuming the implementing plugins are written to spec).
 - Item exporting.  You can dynamically add / update attributes, then run `sm_cwx_export` to
 export your item to a file once it's configured to your liking.
 - Weapon persistence.  Custom items will not be dropped or reequipped on resupply, eliminating
 a whole class of related bugs and crummy workarounds.
 
-More information is provided in [the project wiki].
+More information is provided in [the project wiki][].
 
 [the project wiki]: https://github.com/nosoop/SM-TFCustomWeaponsX/wiki
 
@@ -57,7 +62,8 @@ release whenever commits are pushed.
 Download the `package.zip` from [the releases section][] and unpack into your SourceMod
 directory.
 
-This plugin can run alongside CW3, other than conflicting when weapons are applied.
+This plugin can run alongside CW2/3, other than conflicting when weapons are applied.  (As CW2/3
+handles their logic later during spawn / resupply, their weapons will be the ones active.)
 
 [the releases section]: https://github.com/nosoop/SM-TFCustomWeaponsX/releases
 
@@ -71,8 +77,8 @@ changed dependencies between your current version and the latest.
 
 ### Building
 
-This project can be built in a reproductive manner with [Ninja](https://ninja-build.org/),
-`git`, and Python 3.
+This project can be built in a consistent manner with [Ninja](https://ninja-build.org/), `git`,
+and Python 3.
 
 1.  Clone the repository and its submodules: `git clone --recurse-submodules ...`
 2.  Execute `python3 configure.py --spcomp-dir ${PATH}` within the repo, where `${PATH}` is the
