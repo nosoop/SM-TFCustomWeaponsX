@@ -18,6 +18,9 @@
 #include <clientprefs>
 #include <dhooks>
 
+#define CWX_INCLUDE_SHAREDDEFS_ONLY
+#include <cwx>
+
 #tryinclude <autoversioning/version>
 #if defined __ninjabuild_auto_version_included
 	#define VERSION_SUFFIX "-" ... GIT_COMMIT_SHORT_HASH
@@ -34,6 +37,7 @@ public Plugin myinfo = {
 }
 
 // this is the maximum expected length of our UID
+// it is intentional that this is *not* shared to dependent plugins
 #define MAX_ITEM_IDENTIFIER_LENGTH 64
 
 // this is the maximum length of the item name displayed to players
@@ -65,6 +69,16 @@ ConVar mp_stalemate_meleeonly;
 int g_attrdef_AllowedInMedievalMode;
 
 any offs_CTFPlayer_m_bRegenerating;
+
+public APLRes AskPluginLoad2(Handle self, bool late, char[] error, int maxlen) {
+	RegPluginLibrary("cwx");
+	
+	CreateNative("CWX_SetPlayerLoadoutItem", Native_SetPlayerLoadoutItem);
+	CreateNative("CWX_EquipPlayerItem", Native_EquipPlayerItem);
+	CreateNative("CWX_IsItemUIDValid", Native_IsItemUIDValid);
+	
+	return APLRes_Success;
+}
 
 public void OnPluginStart() {
 	LoadTranslations("cwx.phrases");
@@ -259,6 +273,31 @@ Action EquipItemCmdTarget(int client, int argc) {
 	return Plugin_Handled;
 }
 
+// int CWX_EquipPlayerItem(int client, const char[] uid);
+int Native_EquipPlayerItem(Handle plugin, int argc) {
+	int client = GetNativeCell(1);
+	
+	char itemuid[MAX_ITEM_IDENTIFIER_LENGTH];
+	GetNativeString(2, itemuid, sizeof(itemuid));
+	
+	CustomItemDefinition item;
+	if (!GetCustomItemDefinition(itemuid, item)) {
+		return INVALID_ENT_REFERENCE;
+	}
+	
+	int itemEntity = EquipCustomItem(client, item);
+	return IsValidEntity(itemEntity)? EntIndexToEntRef(itemEntity) : INVALID_ENT_REFERENCE;
+}
+
+// bool CWX_IsItemUIDValid(const char[] uid);
+int Native_IsItemUIDValid(Handle plugin, int argc) {
+	char itemuid[MAX_ITEM_IDENTIFIER_LENGTH];
+	GetNativeString(1, itemuid, sizeof(itemuid));
+	
+	CustomItemDefinition item;
+	return GetCustomItemDefinition(itemuid, item);
+}
+
 int s_LastUpdatedClient;
 
 /**
@@ -419,10 +458,23 @@ public void OnClientCommandKeyValues_Post(int client, KeyValues kv) {
 	}
 }
 
+// bool CWX_SetPlayerLoadoutItem(int client, TFClassType playerClass, const char[] uid, int flags = 0);
+int Native_SetPlayerLoadoutItem(Handle plugin, int argc) {
+	int client = GetNativeCell(1);
+	int playerClass = GetNativeCell(2);
+	
+	char uid[MAX_ITEM_IDENTIFIER_LENGTH];
+	GetNativeString(3, uid, sizeof(uid));
+	
+	int flags = GetNativeCell(4);
+	
+	return SetClientCustomLoadoutItem(client, playerClass, uid, flags);
+}
+
 /**
  * Saves the current item into the loadout for the specified class.
  */
-bool SetClientCustomLoadoutItem(int client, int playerClass, const char[] itemuid) {
+bool SetClientCustomLoadoutItem(int client, int playerClass, const char[] itemuid, int flags) {
 	CustomItemDefinition item;
 	if (!GetCustomItemDefinition(itemuid, item)) {
 		return false;
@@ -431,13 +483,19 @@ bool SetClientCustomLoadoutItem(int client, int playerClass, const char[] itemui
 	int itemSlot = item.loadoutPosition[playerClass];
 	if (0 <= itemSlot < NUM_ITEMS) {
 		g_CurrentLoadout[client][playerClass][itemSlot].SetItemUID(itemuid);
-		g_ItemPersistCookies[playerClass][itemSlot].Set(client, itemuid);
+		
+		if (flags & LOADOUT_FLAG_UPDATE_BACKEND) {
+			g_ItemPersistCookies[playerClass][itemSlot].Set(client, itemuid);
+		}
+		
 		g_CurrentLoadout[client][playerClass][itemSlot].entity = INVALID_ENT_REFERENCE;
 	} else {
 		return false;
 	}
 	
-	OnClientCustomLoadoutItemModified(client, playerClass);
+	if (flags & LOADOUT_FLAG_ATTEMPT_REGEN) {
+		OnClientCustomLoadoutItemModified(client, playerClass);
+	}
 	return true;
 }
 
