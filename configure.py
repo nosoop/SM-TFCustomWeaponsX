@@ -3,6 +3,7 @@
 # plugin names, relative to `scripting/`
 plugins = [
 	'cwx.sp',
+	'cwx_equip_commands.sp',
 ]
 
 # files to copy to builddir, relative to root

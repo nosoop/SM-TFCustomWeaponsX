@@ -104,9 +104,6 @@ public void OnPluginStart() {
 	sm_cwx_enable_loadout = CreateConVar("sm_cwx_enable_loadout", "1",
 			"Allows players to receive custom items they have selected.");
 	
-	RegAdminCmd("sm_cwx_equip", EquipItemCmd, ADMFLAG_ROOT);
-	RegAdminCmd("sm_cwx_equip_target", EquipItemCmdTarget, ADMFLAG_ROOT);
-	
 	RegAdminCmd("sm_cwx_export", ExportActiveWeapon, ADMFLAG_ROOT);
 	
 	// player commands
@@ -200,77 +197,6 @@ public void OnClientCookiesCached(int client) {
 		}
 	}
 	g_bRetrievedLoadout[client] = true;
-}
-
-/**
- * Testing command to equip the given item uid on the player.
- * 
- * NOTE: This command immediately equips the item without respawning - this may not accurately
- * reflect weapon behavior.
- */
-Action EquipItemCmd(int client, int argc) {
-	if (!client) {
-		return Plugin_Continue;
-	}
-	
-	char itemuid[MAX_ITEM_IDENTIFIER_LENGTH];
-	GetCmdArgString(itemuid, sizeof(itemuid));
-	
-	StripQuotes(itemuid);
-	TrimString(itemuid);
-	
-	CustomItemDefinition item;
-	if (!GetCustomItemDefinition(itemuid, item)) {
-		ReplyToCommand(client, "Unknown custom item uid %s", itemuid);
-	} else if (!IsValidEntity(EquipCustomItem(client, item))) {
-		ReplyToCommand(client, "Failed to equip custom item uid %s", itemuid);
-	}
-	return Plugin_Handled;
-}
-
-/**
- * Testing command to equip the given item uid on the specified target.
- */
-Action EquipItemCmdTarget(int client, int argc) {
-	if (!client) {
-		return Plugin_Continue;
-	}
-	
-	char targetString[64];
-	GetCmdArg(1, targetString, sizeof(targetString));
-	
-	char itemuid[MAX_ITEM_IDENTIFIER_LENGTH];
-	GetCmdArg(2, itemuid, sizeof(itemuid));
-	
-	StripQuotes(itemuid);
-	TrimString(itemuid);
-	
-	CustomItemDefinition item;
-	if (!GetCustomItemDefinition(itemuid, item)) {
-		ReplyToCommand(client, "Unknown custom item uid %s", itemuid);
-		return Plugin_Handled;
-	}
-	
-	bool multilang;
-	char targetName[MAX_NAME_LENGTH];
-	int targets[MAXPLAYERS], nTargetsOrFailureReason;
-	nTargetsOrFailureReason = ProcessTargetString(targetString, client,
-			targets, sizeof(targets), COMMAND_FILTER_NO_IMMUNITY,
-			targetName, sizeof(targetName), multilang);
-	
-	if (nTargetsOrFailureReason <= 0) {
-		ReplyToTargetError(client, nTargetsOrFailureReason);
-		return Plugin_Handled;
-	}
-	
-	for (int i; i < nTargetsOrFailureReason; i++) {
-		int target = targets[i];
-		if (!IsValidEntity(EquipCustomItem(target, item))) {
-			ReplyToCommand(client, "Failed to equip custom item uid %s on %N", itemuid, target);
-		}
-	}
-	
-	return Plugin_Handled;
 }
 
 // int CWX_EquipPlayerItem(int client, const char[] uid);
