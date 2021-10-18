@@ -112,6 +112,8 @@ public void OnPluginStart() {
 		SetFailState("Failed to resolve member offset CTFPlayer::m_bRegenerating");
 	}
 	
+	// m_hItem is dword-aligned, the previous dword contains at least 1 unknown bool value
+	// this is consistent between Windows / Linux
 	offs_CTFPlayer_m_bRegenerating = offs_CTFPlayer_m_hItem - 5;
 	
 	// TODO: I'd like to use a separate, independent database for this
@@ -193,6 +195,9 @@ public void OnClientCookiesCached(int client) {
 
 /**
  * Testing command to equip the given item uid on the player.
+ * 
+ * NOTE: This command immediately equips the item without respawning - this may not accurately
+ * reflect weapon behavior.
  */
 Action EquipItemCmd(int client, int argc) {
 	if (!client) {
@@ -265,8 +270,9 @@ int s_LastUpdatedClient;
  * Called once the game has updated the player's loadout with all the weapons it wanted, but
  * before the post_inventory_application event is fired.
  * 
- * As other plugins may perform actions in response to our equip events, we have to wait until
- * after the usermessage is sent before we can run our own logic.
+ * As other plugins may send usermessages in response to our equip events, we have to wait until
+ * after the usermessage is sent before we can run our own logic.  We don't have access to the
+ * usermessage itself in post, so this function simply grabs the info it needs.
  */
 Action OnPlayerLoadoutUpdated(UserMsg msg_id, BfRead msg, const int[] players,
 		int playersNum, bool reliable, bool init) {
@@ -326,8 +332,15 @@ void OnPlayerSpawnPost(Event event, const char[] name, bool dontBroadcast) {
 }
 
 /**
- * Item persistence - we return our item's CEconItemView instance when the game looks up our
- * inventory item.  This prevents our custom item from being invalidated when touch resupply.
+ * Called when the game wants to know what item the player has in a specific class / slot.  This
+ * only happens when the game is regenerating the player (resupply, spawn).  This hook
+ * intercepts the result and returns one of the following:
+ * 
+ * - the player's inventory item view, if we are not overriding it ourselves (no change)
+ * - the spawned entity's item view, if our override item exists; this will prevent our custom
+ *   item from being invalidated when we touch resupply
+ * - an uninitialized item view, if our override item does not exist; the game will skip adding
+ *   a weapon in that slot, and we can then spawn our own item later
  * 
  * The game expects there to be a valid CEconItemView pointer in certain areas of the code, so
  * avoid returning a nullptr.
@@ -351,20 +364,21 @@ MRESReturn OnGetLoadoutItemPost(int client, Handle hReturn, Handle hParams) {
 		// we expect to have to equip something new at this point
 		
 		if (!g_CurrentLoadout[client][playerClass][loadoutSlot][0]) {
-			// we don't have a custom item; let the game process it
+			// we don't have nor want a custom item; let the game process it
 			return MRES_Ignored;
 		}
 		
 		/**
-		 * we have a custom item we'd like to spawn in, don't return a loadout item, otherwise
-		 * we may equip / unequip a weapon that has side effects (e.g. Gunslinger)
+		 * We have a custom item we'd like to spawn in; don't return a loadout item, otherwise
+		 * we may equip / unequip a user's inventory weapon that has side effects
+		 * (e.g. Gunslinger).
 		 * 
-		 * we'll initialize our custom item later in `OnPlayerLoadoutUpdated`
+		 * We'll initialize our custom item later in `OnPlayerLoadoutUpdated`.
 		 */
 		static int s_DefaultItem = INVALID_ENT_REFERENCE;
 		if (!IsValidEntity(s_DefaultItem)) {
 			s_DefaultItem = EntIndexToEntRef(TF2_SpawnWearable());
-			RemoveEntity(s_DefaultItem);
+			RemoveEntity(s_DefaultItem); // (this is OK, RemoveEntity doesn't act immediately)
 		}
 		storedItem = s_DefaultItem;
 	}
@@ -468,7 +482,7 @@ void OnClientCustomLoadoutItemModified(int client, int modifiedClass) {
 }
 
 /**
- * Called after inventory change and  we have the client's tf_respawn_on_loadoutchanges convar
+ * Called after inventory change and we have the client's tf_respawn_on_loadoutchanges convar
  * value.  Respawn them if desired.
  */
 void OnLoadoutRespawnPreference(QueryCookie cookie, int client, ConVarQueryResult result,
@@ -545,6 +559,9 @@ static bool IsPlayerAllowedToRespawnOnLoadoutChange(int client) {
 /**
  * Returns whether or not the custom item is currently allowed.  This is specifically for
  * instances where the item may be temporarily restricted (Medieval, melee-only Sudden Death).
+ * 
+ * sm_cwx_enable_loadout is checked earlier, during OnPlayerLoadoutUpdatedPost and
+ * OnGetLoadoutItemPost.
  */
 static bool IsCustomItemAllowed(int client, const CustomItemDefinition item) {
 	if (!IsClientInGame(client)) {
