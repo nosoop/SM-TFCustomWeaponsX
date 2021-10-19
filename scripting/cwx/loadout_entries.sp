@@ -5,6 +5,9 @@
 enum struct LoadoutEntry {
 	char uid[MAX_ITEM_IDENTIFIER_LENGTH];
 	
+	// overload UID -- used when plugins want to take priority over user preference
+	char override_uid[MAX_ITEM_IDENTIFIER_LENGTH];
+	
 	// loadout entity, for persistence
 	// note for the future: we do *not* restore this on late load since the schema may have changed
 	int entity;
@@ -13,17 +16,26 @@ enum struct LoadoutEntry {
 		strcopy(this.uid, MAX_ITEM_IDENTIFIER_LENGTH, other_uid);
 	}
 	
-	bool IsEmpty() {
-		return !this.uid[0];
-	}
-	
-	void Clear() {
-		this.entity = INVALID_ENT_REFERENCE;
-		this.uid = "";
+	void SetOverloadItemUID(const char[] other_uid) {
+		strcopy(this.override_uid, MAX_ITEM_IDENTIFIER_LENGTH, other_uid);
 	}
 	
 	bool GetItemDefinition(CustomItemDefinition item) {
-		return GetCustomItemDefinition(this.uid, item);
+		return GetCustomItemDefinition(this.override_uid, item)
+				|| GetCustomItemDefinition(this.uid, item);
+	}
+	
+	bool IsEmpty() {
+		return !(this.override_uid[0] || this.uid[0]);
+	}
+	
+	void Clear(bool initialize = false) {
+		this.entity = INVALID_ENT_REFERENCE;
+		this.uid = "";
+		
+		if (initialize) {
+			this.override_uid = "";
+		}
 	}
 }
 

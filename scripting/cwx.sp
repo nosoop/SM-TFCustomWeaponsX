@@ -168,7 +168,7 @@ public void OnClientConnected(int client) {
 	g_bRetrievedLoadout[client] = false;
 	for (int c; c < NUM_PLAYER_CLASSES; c++) {
 		for (int i; i < NUM_ITEMS; i++) {
-			g_CurrentLoadout[client][c][i].Clear();
+			g_CurrentLoadout[client][c][i].Clear(.initialize = true);
 		}
 	}
 }
@@ -267,9 +267,8 @@ void OnPlayerLoadoutUpdatedPost(UserMsg msg_id, bool sent) {
 		int currentLoadoutItem = g_CurrentLoadout[client][playerClass][i].entity;
 		if (g_bForceReequipItems[client] || !IsValidEntity(currentLoadoutItem)
 				|| GetEntityFlags(currentLoadoutItem) & FL_KILLME) {
-			// TODO validate that the player can access this item
 			CustomItemDefinition item;
-			if (!GetCustomItemDefinition(g_CurrentLoadout[client][playerClass][i].uid, item)) {
+			if (!g_CurrentLoadout[client][playerClass][i].GetItemDefinition(item)) {
 				continue;
 			}
 			
@@ -408,10 +407,13 @@ bool SetClientCustomLoadoutItem(int client, int playerClass, const char[] itemui
 	
 	int itemSlot = item.loadoutPosition[playerClass];
 	if (0 <= itemSlot < NUM_ITEMS) {
-		g_CurrentLoadout[client][playerClass][itemSlot].SetItemUID(itemuid);
-		
 		if (flags & LOADOUT_FLAG_UPDATE_BACKEND) {
+			// item being set as user preference; update backend and set permanent UID slot
 			g_ItemPersistCookies[playerClass][itemSlot].Set(client, itemuid);
+			g_CurrentLoadout[client][playerClass][itemSlot].SetItemUID(itemuid);
+		} else {
+			// item being set temporarily; set as overload
+			g_CurrentLoadout[client][playerClass][itemSlot].SetOverloadItemUID(itemuid);
 		}
 		
 		g_CurrentLoadout[client][playerClass][itemSlot].entity = INVALID_ENT_REFERENCE;

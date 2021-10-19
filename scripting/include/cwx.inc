@@ -10,7 +10,9 @@
  ***************************************************************************************/
 
 #define LOADOUT_FLAG_UPDATE_BACKEND (1 << 0) // update the item on the backing database, in
-                                             // addition to the current session
+                                             // addition to the current session -- if this is
+                                             // not set, the item will be treated as a temporary
+                                             // override
 #define LOADOUT_FLAG_ATTEMPT_REGEN  (1 << 1) // if the player is in a spawn room, perform
                                              // regeneration to refresh the loadout
 

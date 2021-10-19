@@ -10,6 +10,7 @@
 #pragma newdecls required
 
 #include <cwx>
+#include <tf2_stocks>
 
 public Plugin myinfo = {
 	name = "[TF2] Custom Weapons X - Equip Commands",
@@ -24,6 +25,7 @@ public Plugin myinfo = {
 public void OnPluginStart() {
 	RegAdminCmd("sm_cwx_equip", EquipItemCmd, ADMFLAG_ROOT);
 	RegAdminCmd("sm_cwx_equip_target", EquipItemCmdTarget, ADMFLAG_ROOT);
+	RegAdminCmd("sm_cwx_set_loadout", PersistItemCmd, ADMFLAG_ROOT);
 }
 
 /**
@@ -48,6 +50,26 @@ Action EquipItemCmd(int client, int argc) {
 	} else if (!IsValidEntity(CWX_EquipPlayerItem(client, itemuid))) {
 		ReplyToCommand(client, "Failed to equip custom item uid %s", itemuid);
 	}
+	return Plugin_Handled;
+}
+
+Action PersistItemCmd(int client, int argc) {
+	if (!client) {
+		return Plugin_Continue;
+	}
+	
+	char itemuid[MAX_ITEM_IDENTIFIER_LENGTH];
+	GetCmdArgString(itemuid, sizeof(itemuid));
+	
+	StripQuotes(itemuid);
+	TrimString(itemuid);
+	
+	if (!CWX_IsItemUIDValid(itemuid)) {
+		ReplyToCommand(client, "Unknown custom item uid %s", itemuid);
+	} else if (!CWX_SetPlayerLoadoutItem(client, TF2_GetPlayerClass(client), itemuid)) {
+		ReplyToCommand(client, "Failed to set custom item uid %s", itemuid);
+	}
+	
 	return Plugin_Handled;
 }
 

@@ -354,6 +354,7 @@ static int OnEquipMenuEvent(Menu menu, MenuAction action, int param1, int param2
 			int menuSlot = g_iPlayerSlotInMenu[client];
 			
 			bool equipped = StrEqual(g_CurrentLoadout[client][menuClass][menuSlot].uid, uid);
+			bool override = StrEqual(g_CurrentLoadout[client][menuClass][menuSlot].override_uid, uid);
 			
 			SetGlobalTransTarget(client);
 			
@@ -375,6 +376,9 @@ static int OnEquipMenuEvent(Menu menu, MenuAction action, int param1, int param2
 			
 			if (equipped) {
 				Format(itemName, sizeof(itemName), "%s %t", itemName, "QuickSwitchEquipped");
+				redraw = true;
+			} else if (uid[0] && override) {
+				Format(itemName, sizeof(itemName), "%s %t", itemName, "ItemForcedByServer");
 				redraw = true;
 			}
 			

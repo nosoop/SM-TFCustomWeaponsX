@@ -933,4 +933,8 @@
 	{
 		"en" "(Custom items are currently disabled by the server operator.)"
 	}
+	"ItemForcedByServer"
+	{
+		"en" "(forced by server)"
+	}
 }
