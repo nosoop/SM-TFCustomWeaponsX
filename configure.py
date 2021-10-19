@@ -15,6 +15,7 @@ copy_files = [
 	"scripting/cwx/item_config.sp",
 	"scripting/cwx/item_entity.sp",
 	"scripting/cwx/item_export.sp",
+	"scripting/cwx/loadout_entries.sp",
 	"scripting/cwx/loadout_radio_menu.sp",
 	
 	"translations/cwx.phrases.txt",
