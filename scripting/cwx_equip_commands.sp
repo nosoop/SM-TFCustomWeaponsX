@@ -16,7 +16,7 @@ public Plugin myinfo = {
 	name = "[TF2] Custom Weapons X - Equip Commands",
 	author = "nosoop",
 	description = "Provides admin-level commands to force equip defined items.",
-	version = "1.0.0",
+	version = "1.1.0",
 	url = "https://github.com/nosoop/SM-TFCustomWeaponsX"
 }
 
@@ -53,6 +53,10 @@ Action EquipItemCmd(int client, int argc) {
 	return Plugin_Handled;
 }
 
+/**
+ * Testing command to temporarily assign the given item uid on the player's loadout.
+ * The item will be applied the next time the player is regenerated.
+ */
 Action PersistItemCmd(int client, int argc) {
 	if (!client) {
 		return Plugin_Continue;
