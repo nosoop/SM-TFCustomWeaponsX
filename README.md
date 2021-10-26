@@ -40,6 +40,7 @@ More information is provided in [the project wiki][].
 The SourceMod plugins / extensions listed below are required for Custom Weapons X to run:
 
 - [Econ Data](https://github.com/nosoop/SM-TFEconData)
+  - Requires minimum version 0.18.0.
 - [TF2Attributes](https://github.com/nosoop/tf2attributes)
   - Requires the string attributes pre-release!  (1.7.0)
 - [TF2 Custom Attributes](https://github.com/nosoop/SM-TFCustAttr)

@@ -33,7 +33,7 @@ public Plugin myinfo = {
 	name = "[TF2] Custom Weapons X",
 	author = "nosoop",
 	description = "Allows server operators to design their own weapons.",
-	version = "X.0.8" ... VERSION_SUFFIX,
+	version = "X.0.9" ... VERSION_SUFFIX,
 	url = "https://github.com/nosoop/SM-TFCustomWeaponsX"
 }
 
@@ -511,9 +511,7 @@ int FindBaseItem(TFClassType playerClass, int loadoutSlot) {
 }
 
 bool FilterBaseItems(int itemdef, any __) {
-	Address pItemDef = TF2Econ_GetItemDefinitionAddress(itemdef);
-	return pItemDef?
-			!!LoadFromAddress(pItemDef + view_as<Address>(0xE6), NumberType_Int8) : false;
+	return TF2Econ_IsItemInBaseSet(itemdef);
 }
 
 // bool CWX_SetPlayerLoadoutItem(int client, TFClassType playerClass, const char[] uid, int flags = 0);
