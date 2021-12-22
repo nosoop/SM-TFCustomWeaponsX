@@ -51,6 +51,14 @@ native int CWX_EquipPlayerItem(int client, const char[] uid);
  */
 native bool CWX_IsItemUIDValid(const char[] uid);
 
+/**
+ * Retrieves an existing weapon's uid into the buffer.
+ *
+ * @return    True if the item has a uid, False if not.
+ * @error     Entity is invalid or incapable of being a custom item.
+ */
+native bool CWX_GetItemUIDFromEntity(int entity, char[] buffer, int maxlen);
+
 public SharedPlugin __pl_custom_weapons_x = {
 	name = "cwx",
 	file = "cwx.smx",
