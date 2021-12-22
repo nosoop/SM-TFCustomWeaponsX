@@ -50,6 +50,10 @@ public Plugin myinfo = {
 // otherwise it'll warn on array-based enumstruct
 #define NUM_PLAYER_CLASSES 10
 
+// we're using the "random drop line item unusual list" attribute as a dumping attribute to store the UID onto the item in an attribute
+// it's kinda icky and if anyone else happened to get the same idea it'd be bad, but it's the best we've got without trying TOO hard
+#define UID_ATTRIBUTE "random drop line item unusual list"
+
 bool g_bRetrievedLoadout[MAXPLAYERS + 1];
 
 Cookie g_ItemPersistCookies[NUM_PLAYER_CLASSES][NUM_ITEMS];
@@ -234,9 +238,17 @@ int Native_GetItemUIDFromEntity(Handle plugin, int argc) {
 		return false;
 	}
 	
+	Address result = TF2Attrib_GetByName(entity, UID_ATTRIBUTE);
+	
+	if (!result) {
+		return false;
+    }
+	
+	any rawValue = TF2Attrib_GetValue(result);
+	
 	int maxlen = GetNativeCell(3);
 	char[] buffer = new char[maxlen];
-	TF2Attrib_HookValueString("", "non_economy", entity, buffer, maxlen);
+	TF2Attrib_UnsafeGetStringValue(rawValue, buffer, maxlen);
 	
 	if (strcmp(buffer, "") == 0) {
 		return false;
