@@ -303,10 +303,7 @@ int EquipCustomItem(int client, const CustomItemDefinition item) {
 	}
 	
 	// add a stinky attribute that holds the item's uid
-	// this allows plugins to determine if the item is custom by seeing if it has the "non economy" attribute
-	// the uid is stored as the value, so it can also determine which custom item it is
-	// could cause problems if anyone else decides to use the "non economy" attribute in some similar fashion, though...
-	TF2Attrib_SetFromStringValue(itemEntity, "non economy", item.uid);
+	TF2Attrib_SetFromStringValue(itemEntity, UID_ATTRIBUTE, item.uid);
 	
 	// apply attributes for Custom Attributes
 	if (item.customAttributes) {
