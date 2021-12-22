@@ -303,7 +303,8 @@ int EquipCustomItem(int client, const CustomItemDefinition item) {
 	}
 	
 	// add a stinky attribute that holds the item's uid
-	TF2Attrib_SetFromStringValue(itemEntity, UID_ATTRIBUTE, item.uid);
+	// this value is read with CWX_GetItemUIDFromEntity
+	TF2Attrib_SetFromStringValue(itemEntity, ATTRIB_NAME_CUSTOM_UID, item.uid);
 	
 	// apply attributes for Custom Attributes
 	if (item.customAttributes) {
