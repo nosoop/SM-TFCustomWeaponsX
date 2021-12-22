@@ -235,14 +235,14 @@ int Native_GetItemUIDFromEntity(Handle plugin, int argc) {
 	}
 	
 	int maxlen = GetNativeCell(3);
-	char buffer[maxlen];
-	TF2Attrib_HookValueString("", non_economy, entity, buffer, sizeof(buffer));
+	char[] buffer = new char[maxlen];
+	TF2Attrib_HookValueString("", "non_economy", entity, buffer, maxlen);
 	
 	if (strcmp(buffer, "") == 0) {
 		return false;
 	}
 	
-	SetNativeString(2, buffer, sizeof(buffer));
+	SetNativeString(2, buffer, maxlen);
 	return true;
 }
 
