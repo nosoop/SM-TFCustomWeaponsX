@@ -233,7 +233,7 @@ int Native_IsItemUIDValid(Handle plugin, int argc) {
 int Native_GetItemUIDFromEntity(Handle plugin, int argc) {
 	int entity = GetNativeCell(1);
 	
-	if (!IsValidEntity(entity) || !HasEntProp(entity, Prop_Send, "m_iItemDefinitionIndex")) {
+	if (!IsValidEntity(entity) || !HasEntProp(entity, Prop_Send, "m_AttributeList")) {
 		LogError("Tried to get UID from invalid entity %i", entity);
 		return false;
 	}
