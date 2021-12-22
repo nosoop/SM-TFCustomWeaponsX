@@ -7,6 +7,7 @@
 enum struct CustomItemDefinition {
 	KeyValues source;
 	
+	char uid[MAX_ITEM_IDENTIFIER_LENGTH];
 	int defindex;
 	char displayName[128];
 	KeyValues localizedNames;
@@ -130,8 +131,7 @@ bool CreateItemFromSection(KeyValues config) {
 	
 	item.source.Import(config);
 	
-	char uid[MAX_ITEM_IDENTIFIER_LENGTH];
-	config.GetSectionName(uid, sizeof(uid));
+	config.GetSectionName(item.uid, sizeof(item.uid));
 	
 	config.GetString("name", item.displayName, sizeof(item.displayName));
 	
@@ -144,7 +144,7 @@ bool CreateItemFromSection(KeyValues config) {
 		item.defindex = inheritDef;
 		TF2Econ_GetItemClassName(inheritDef, item.className, sizeof(item.className));
 	} else if (inheritFromItem[0]) {
-		LogError("Item uid '%s' inherits from unknown item '%s'", uid, inheritFromItem);
+		LogError("Item uid '%s' inherits from unknown item '%s'", item.uid, inheritFromItem);
 		item.Destroy();
 		return false;
 	}
@@ -154,13 +154,13 @@ bool CreateItemFromSection(KeyValues config) {
 	config.GetString("item_class", item.className, sizeof(item.className), item.className);
 	
 	if (!item.className[0]) {
-		LogError("Item uid '%s' has no classname", uid);
+		LogError("Item uid '%s' has no classname", item.uid);
 		item.Destroy();
 		return false;
 	}
 	
 	if (item.defindex == TF_ITEMDEF_DEFAULT) {
-		LogError("Item uid '%s' has no item definition", uid);
+		LogError("Item uid '%s' has no item definition", item.uid);
 		item.Destroy();
 		return false;
 	}
@@ -185,7 +185,7 @@ bool CreateItemFromSection(KeyValues config) {
 				config.GetSectionName(key, sizeof(key));
 				
 				if (TF2Econ_TranslateAttributeNameToDefinitionIndex(key) == -1) {
-					LogError("Item uid '%s' references non-existent attribute '%s'", uid, key);
+					LogError("Item uid '%s' references non-existent attribute '%s'", item.uid, key);
 				}
 			} while (config.GotoNextKey(false));
 			config.GoBack();
@@ -209,7 +209,7 @@ bool CreateItemFromSection(KeyValues config) {
 		config.GoBack();
 	}
 	
-	g_CustomItems.SetArray(uid, item, sizeof(item));
+	g_CustomItems.SetArray(item.uid, item, sizeof(item));
 	return true;
 }
 
@@ -301,6 +301,12 @@ int EquipCustomItem(int client, const CustomItemDefinition item) {
 			item.nativeAttributes.GoBack();
 		}
 	}
+	
+	// add a stinky attribute that holds the item's uid
+	// this allows plugins to determine if the item is custom by seeing if it has the "non economy" attribute
+	// the uid is stored as the value, so it can also determine which custom item it is
+	// could cause problems if anyone else decides to use the "non economy" attribute in some similar fashion, though...
+	TF2Attrib_SetFromStringValue(itemEntity, "non economy", item.uid);
 	
 	// apply attributes for Custom Attributes
 	if (item.customAttributes) {
