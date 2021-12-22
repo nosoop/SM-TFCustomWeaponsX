@@ -76,6 +76,7 @@ public APLRes AskPluginLoad2(Handle self, bool late, char[] error, int maxlen) {
 	CreateNative("CWX_SetPlayerLoadoutItem", Native_SetPlayerLoadoutItem);
 	CreateNative("CWX_EquipPlayerItem", Native_EquipPlayerItem);
 	CreateNative("CWX_IsItemUIDValid", Native_IsItemUIDValid);
+	CreateNative("CWX_GetItemUIDFromEntity", Native_GetItemUIDFromEntity);
 	
 	return APLRes_Success;
 }
@@ -222,6 +223,27 @@ int Native_IsItemUIDValid(Handle plugin, int argc) {
 	
 	CustomItemDefinition item;
 	return GetCustomItemDefinition(itemuid, item);
+}
+
+// bool CWX_GetItemUIDFromEntity(int entity, char[] buffer, int maxlen);
+int Native_GetItemUIDFromEntity(Handle plugin, int argc) {
+	int entity = GetNativeCell(1);
+	
+	if (!IsValidEntity(entity) || !HasEntProp(entity, Prop_Send, "m_iItemDefinitionIndex")) {
+		LogError("Tried to get UID from invalid entity %i", entity);
+		return false;
+	}
+	
+	int maxlen = GetNativeCell(3);
+	char buffer[maxlen];
+	TF2Attrib_HookValueString("", non_economy, entity, buffer, sizeof(buffer));
+	
+	if (strcmp(buffer, "") == 0) {
+		return false;
+	}
+	
+	SetNativeString(2, buffer, sizeof(buffer));
+	return true;
 }
 
 int s_LastUpdatedClient;
