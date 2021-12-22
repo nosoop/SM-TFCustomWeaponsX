@@ -50,6 +50,12 @@ public Plugin myinfo = {
 // otherwise it'll warn on array-based enumstruct
 #define NUM_PLAYER_CLASSES 10
 
+// we're using the "random drop line item unusual list" attribute as a dumping attribute to
+// store the UID onto the item in an attribute (ensuring that it persists across weapon drops) -
+// it's kinda icky and if anyone else happened to get the same idea it'd be bad, but it's the
+// best we've got without trying TOO hard
+#define ATTRIB_NAME_CUSTOM_UID "random drop line item unusual list"
+
 bool g_bRetrievedLoadout[MAXPLAYERS + 1];
 
 Cookie g_ItemPersistCookies[NUM_PLAYER_CLASSES][NUM_ITEMS];
@@ -74,6 +80,7 @@ public APLRes AskPluginLoad2(Handle self, bool late, char[] error, int maxlen) {
 	CreateNative("CWX_SetPlayerLoadoutItem", Native_SetPlayerLoadoutItem);
 	CreateNative("CWX_EquipPlayerItem", Native_EquipPlayerItem);
 	CreateNative("CWX_IsItemUIDValid", Native_IsItemUIDValid);
+	CreateNative("CWX_GetItemUIDFromEntity", Native_GetItemUIDFromEntity);
 	
 	return APLRes_Success;
 }
@@ -211,6 +218,36 @@ int Native_IsItemUIDValid(Handle plugin, int argc) {
 	
 	CustomItemDefinition item;
 	return GetCustomItemDefinition(itemuid, item);
+}
+
+// bool CWX_GetItemUIDFromEntity(int entity, char[] buffer, int maxlen);
+int Native_GetItemUIDFromEntity(Handle plugin, int argc) {
+	int entity = GetNativeCell(1);
+	
+	if (!IsValidEntity(entity) || !HasEntProp(entity, Prop_Send, "m_AttributeList")) {
+		ThrowNativeError(SP_ERROR_NATIVE, "Entity %d is invalid or not an item", entity);
+		return false;
+	}
+	
+	// only pull the value from the runtime attribute list
+	Address result = TF2Attrib_GetByName(entity, ATTRIB_NAME_CUSTOM_UID);
+	if (!result) {
+		return false;
+	}
+	
+	any rawValue = TF2Attrib_GetValue(result);
+	
+	int maxlen = GetNativeCell(3);
+	char[] buffer = new char[maxlen];
+	
+	TF2Attrib_UnsafeGetStringValue(rawValue, buffer, maxlen);
+	
+	if (strcmp(buffer, "") == 0) {
+		return false;
+	}
+	
+	SetNativeString(2, buffer, maxlen);
+	return true;
 }
 
 int s_LastUpdatedClient;
