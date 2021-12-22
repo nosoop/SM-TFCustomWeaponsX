@@ -20,11 +20,18 @@ enum struct LoadoutEntry {
 		strcopy(this.override_uid, MAX_ITEM_IDENTIFIER_LENGTH, other_uid);
 	}
 	
+	/**
+	 * Returns the custom item definition associated with the given loadout entry.  Any overload
+	 * (i.e., external plugin-granted) item that is set will take priority.
+	 */
 	bool GetItemDefinition(CustomItemDefinition item) {
 		return GetCustomItemDefinition(this.override_uid, item)
 				|| GetCustomItemDefinition(this.uid, item);
 	}
 	
+	/**
+	 * Returns true if the given loadout entry does not have a custom item assigned.
+	 */
 	bool IsEmpty() {
 		return !(this.override_uid[0] || this.uid[0]);
 	}

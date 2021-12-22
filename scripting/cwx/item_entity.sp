@@ -12,7 +12,9 @@ stock int TF2_CreateItem(int defindex, const char[] itemClass) {
 		SetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex", defindex);
 		SetEntProp(weapon, Prop_Send, "m_bInitialized", 1);
 		
-		// Allow quality / level override by updating through the offset.
+		// allow quality / level override by updating through the offset
+		// for some reason I've never been able to figure out, this just doesn't render
+		// correctly without setting the memory
 		char netClass[64];
 		GetEntityNetClass(weapon, netClass, sizeof(netClass));
 		SetEntData(weapon, FindSendPropInfo(netClass, "m_iEntityQuality"), 6);
@@ -56,7 +58,8 @@ bool TF2_RemoveItemByLoadoutSlot(int client, int loadoutSlot) {
 }
 
 /**
- * Equips the given econ item.
+ * Equips the given econ item.  If the item is a weapon, the ammo and clip are reset to full
+ * capacity.
  */
 void TF2_EquipPlayerEconItem(int client, int item) {
 	char weaponClass[64];

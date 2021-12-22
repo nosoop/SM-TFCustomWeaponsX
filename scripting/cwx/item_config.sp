@@ -88,9 +88,7 @@ void LoadCustomItemConfig() {
 	}
 	delete configFiles;
 	
-	// TODO add a forward that allows other plugins to hook registered attribute names and
-	// precache any resources
-	
+	// clean up old items
 	if (g_CustomItems) {
 		char uid[MAX_ITEM_IDENTIFIER_LENGTH];
 		

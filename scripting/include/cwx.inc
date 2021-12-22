@@ -31,6 +31,8 @@
 /**
  * Adds the given item to the player's session loadout.  This item will be equipped on the
  * player on next regeneration (spawn / resupply) and persisted until they disconnect.
+ * 
+ * The loadout slot is determined based on the item definition.
  */
 native bool CWX_SetPlayerLoadoutItem(int client, TFClassType playerClass, const char[] uid,
 		int flags = 0);

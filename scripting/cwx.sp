@@ -36,8 +36,8 @@ public Plugin myinfo = {
 	url = "https://github.com/nosoop/SM-TFCustomWeaponsX"
 }
 
-// this is the maximum expected length of our UID
-// it is intentional that this is *not* shared to dependent plugins
+// this is the maximum expected length of our UID; it is intentional that this is *not* shared
+// to dependent plugins, as we may change this at any time
 #define MAX_ITEM_IDENTIFIER_LENGTH 64
 
 // this is the maximum length of the item name displayed to players
@@ -50,10 +50,10 @@ public Plugin myinfo = {
 // otherwise it'll warn on array-based enumstruct
 #define NUM_PLAYER_CLASSES 10
 
-// we're using the "random drop line item unusual list" attribute as a dumping attribute to
-// store the UID onto the item in an attribute (ensuring that it persists across weapon drops) -
-// it's kinda icky and if anyone else happened to get the same idea it'd be bad, but it's the
-// best we've got without trying TOO hard
+// we're recycling the following attribute to ensure that the item UID persists across dropped
+// weapons - it's kinda icky and if anyone else happened to get the same idea it'd be bad, but
+// it's the best we've got without trying TOO hard
+// TODO: rework this in the future to optionally use an injected attribute?
 #define ATTRIB_NAME_CUSTOM_UID "random drop line item unusual list"
 
 bool g_bRetrievedLoadout[MAXPLAYERS + 1];
