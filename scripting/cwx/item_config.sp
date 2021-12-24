@@ -47,7 +47,7 @@ enum struct CustomItemDefinition {
 		
 		KeyValues result;
 		if (this.source.JumpToKey(name, false)) {
-			result = new KeyValues("attributes_custom");
+			result = new KeyValues(name);
 			result.Import(this.source);
 			this.source.GoBack();
 		}
