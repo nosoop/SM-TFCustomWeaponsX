@@ -8,6 +8,7 @@
 
 #include <tf_econ_data>
 #include <stocksoup/convars>
+#include <stocksoup/handles>
 #include <stocksoup/math>
 #include <stocksoup/tf/econ>
 #include <stocksoup/tf/entity_prop_stocks>
@@ -81,6 +82,7 @@ public APLRes AskPluginLoad2(Handle self, bool late, char[] error, int maxlen) {
 	CreateNative("CWX_EquipPlayerItem", Native_EquipPlayerItem);
 	CreateNative("CWX_IsItemUIDValid", Native_IsItemUIDValid);
 	CreateNative("CWX_GetItemUIDFromEntity", Native_GetItemUIDFromEntity);
+	CreateNative("CWX_GetItemExtData", Native_GetItemExtData);
 	
 	return APLRes_Success;
 }
@@ -248,6 +250,23 @@ int Native_GetItemUIDFromEntity(Handle plugin, int argc) {
 	
 	SetNativeString(2, buffer, maxlen);
 	return true;
+}
+
+// optional<KeyValues> CWX_GetItemExtData(const char[] uid, const char[] section);
+int Native_GetItemExtData(Handle plugin, int argc) {
+	char uid[MAX_ITEM_IDENTIFIER_LENGTH];
+	char sectionName[64];
+	
+	GetNativeString(1, uid, sizeof(uid));
+	GetNativeString(2, sectionName, sizeof(sectionName));
+	
+	CustomItemDefinition customItem;
+	if (!GetCustomItemDefinition(uid, customItem)) {
+		return 0;
+	}
+	
+	KeyValues result = customItem.GetExtData(sectionName);
+	return result? MoveHandle(result, plugin) : 0;
 }
 
 int s_LastUpdatedClient;

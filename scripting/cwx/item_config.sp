@@ -35,6 +35,25 @@ enum struct CustomItemDefinition {
 		delete this.customAttributes;
 		delete this.localizedNames;
 	}
+	
+	/**
+	 * If one exists, returns a copy of the contents of a named "extdata" subsection for the
+	 * item.  Returns null otherwise.
+	 */
+	KeyValues GetExtData(const char[] name) {
+		if (!this.source.JumpToKey("extdata", false)) {
+			return null;
+		}
+		
+		KeyValues result;
+		if (this.source.JumpToKey(name, false)) {
+			result = new KeyValues("attributes_custom");
+			result.Import(this.source);
+			this.source.GoBack();
+		}
+		this.source.GoBack();
+		return result;
+	}
 }
 
 /**

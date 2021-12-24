@@ -62,6 +62,15 @@ native bool CWX_IsItemUIDValid(const char[] uid);
  */
 native bool CWX_GetItemUIDFromEntity(int entity, char[] buffer, int maxlen);
 
+/**
+ * Retrieves a copy of an custom item definition's "extended data" section by name, if one
+ * exists.  This handle should be freed by the calling plugin.
+ * 
+ * @return    A KeyValues handle containing the custom item definition's extended data named
+ *            subsection, or `null` if the custom item definition or subsection does not exist.
+ */
+native KeyValues CWX_GetItemExtData(const char[] uid, const char[] section);
+
 public SharedPlugin __pl_custom_weapons_x = {
 	name = "cwx",
 	file = "cwx.smx",
@@ -77,5 +86,7 @@ public void __pl_custom_weapons_x_SetNTVOptional() {
 	MarkNativeAsOptional("CWX_SetPlayerLoadoutItem");
 	MarkNativeAsOptional("CWX_EquipPlayerItem");
 	MarkNativeAsOptional("CWX_IsItemUIDValid");
+	MarkNativeAsOptional("CWX_GetItemUIDFromEntity");
+	MarkNativeAsOptional("CWX_GetItemExtData");
 }
 #endif
