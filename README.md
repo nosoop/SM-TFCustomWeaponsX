@@ -51,8 +51,10 @@ Additional software recommendations that aren't completely necessary:
 
 - The [Attribute Support Fixes][] project, which is a no-configuration project that fixes
   certain attribute interactions.
+- [CW3toX][], which may allow attributes written for Custom Weapons 3 to run under this project.
 
 [Attribute Support Fixes]: https://github.com/nosoop/SM-TFAttributeSupport
+[CW3toX]: https://github.com/nosoop/SM-TFCW3toX
 
 ### Prebuilt Package
 
@@ -93,8 +95,8 @@ path to the directory containing `spcomp`.  This repository targets 1.10.
 ## Differences
 
 Core design changes in TF2 necessitated a clean break from previous iterations of
-Custom Weapons.  This means that attributes originally written for CW2 or CW3 are not compatible
-with CWX; they will need to be rewritten.
+Custom Weapons.  This means that attributes originally written for CW2 ~~or CW3~~ are not
+compatible with CWX; they will need to be rewritten.
 
 CWX is also not backwards-compatible with configuration files written for CW2 or CW3.
 
