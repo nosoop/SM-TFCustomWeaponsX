@@ -1,11 +1,15 @@
+// This is an example weapon configuration file containing two example weapons.
+// For more detailed and up-to-date documentation, visit the following page:
+// https://github.com/nosoop/SM-TFCustomWeaponsX/wiki/Getting-Started-(for-Server-Operators)#creating-a-new-item-from-scratch
 "Items"
 {
-	"{e86f9513-1454-49dd-97b1-ce1faab2f89e}" // we just need a unique identifier here
+	"{e86f9513-1454-49dd-97b1-ce1faab2f89e}" // we just need a unique identifier here - this is not necessarily a UUID
 	{
 		//// item name, to be displayed in any menus
 		"name"			"The Airblaster"
 		
-		//// "inherits" is special:  resolves to item definition and determines classname, item slots, quality
+		//// "inherits" is special:  it resolves to item definition and determines classname, item slots, quality
+		//// if provided, this must correspond to the value of a "name" key in items_game.txt
 		"inherits"		"TF_WEAPON_FLAMETHROWER"
 		
 		//// "inherits" automatically determines this if provided, but
@@ -28,7 +32,6 @@
 		//// whether or not static (item schema) attributes are preserved
 		//// 0: only use attributes applied at runtime 
 		//// 1: preserves static attributes
-		//// 2: attempts to nullify static gameplay-affecting attributes while preserving other ones (so you can use minmode viewmodels, etc.)
 		"keep_static_attrs"		"1"
 		
 		//// contains official attributes
@@ -45,6 +48,7 @@
 			"airblast projectiles adds self condition"	"condition=32 duration=10"
 			
 			// commented out below in case the below attribute exists
+			// if the attribute exists, you will need to ensure the associated resources are cached
 			// "clientmodel override"					"models/weapons/c_models/c_firkin_flamer/c_firkin_flamer.mdl"
 		}
 	}
@@ -52,7 +56,7 @@
 	{
 		// here's a condensed example
 		"name"			"The 'Grenade Launcher' Launcher"
-		"inherits"		"TF_WEAPON_GRENADELAUNCHER"
+		"inherits"		"The Iron Bomber"
 		"attributes_game"
 		{
 			// string attributes work too, as long as the client doesn't read them
