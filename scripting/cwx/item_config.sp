@@ -64,16 +64,21 @@ static StringMap g_CustomItems;
 void LoadCustomItemConfig() {
 	KeyValues itemSchema = new KeyValues("Items");
 	
-	// legacy single-file schema format
-	char schemaPath[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, schemaPath, sizeof(schemaPath), "configs/%s", "cwx_schema.txt");
-	itemSchema.ImportFromFile(schemaPath);
+	// tracks the first file a given item UID was found in, used for duplicate UID warning
+	StringMap origFileSource = new StringMap();
 	
+	// find files within `configs/cwx/` for importing
 	char schemaDir[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, schemaDir, sizeof(schemaDir), "configs/%s", "cwx");
 	
-	// find files within `configs/cwx/` and import them, too
 	ArrayList configFiles = GetFilesInDirectoryRecursive(schemaDir);
+	
+	// insert legacy format at head
+	char schemaPath[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, schemaPath, sizeof(schemaPath), "configs/%s", "cwx_schema.txt");
+	configFiles.ShiftUp(0);
+	configFiles.SetString(0, schemaPath);
+	
 	for (int i, n = configFiles.Length; i < n; i++) {
 		configFiles.GetString(i, schemaPath, sizeof(schemaPath));
 		NormalizePathToPOSIX(schemaPath);
@@ -92,11 +97,14 @@ void LoadCustomItemConfig() {
 			importKV.GetSectionName(uid, sizeof(uid));
 			if (importKV.GetDataType(NULL_STRING) == KvData_None) {
 				if (itemSchema.JumpToKey(uid)) {
-					LogMessage("Item uid %s already exists in schema, ignoring entry in %s",
-							uid, schemaPath);
+					char conflictPath[PLATFORM_MAX_PATH];
+					origFileSource.GetString(uid, conflictPath, sizeof(conflictPath));
+					LogMessage("Item uid %s first loaded from '%s', ignoring entry in '%s'",
+							uid, conflictPath, schemaPath);
 				} else {
 					itemSchema.JumpToKey(uid, true);
 					itemSchema.Import(importKV);
+					origFileSource.SetString(uid, schemaPath);
 				}
 				itemSchema.GoBack();
 			}
@@ -106,6 +114,7 @@ void LoadCustomItemConfig() {
 		delete importKV;
 	}
 	delete configFiles;
+	delete origFileSource;
 	
 	// clean up old items
 	if (g_CustomItems) {
