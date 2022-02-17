@@ -49,7 +49,7 @@ native bool CWX_SetPlayerLoadoutItem(int client, TFClassType playerClass, const 
 native int CWX_EquipPlayerItem(int client, const char[] uid);
 
 /**
- * Returns if the item UID is valid.
+ * Validates that the given item UID is found in CWX's item list.
  */
 native bool CWX_IsItemUIDValid(const char[] uid);
 
@@ -57,13 +57,14 @@ native bool CWX_IsItemUIDValid(const char[] uid);
  * Retrieves an item's UID, if one exists.
  *
  * @return    True if the item has an associated UID, false if not.  (Note that the item UID is
- *            not tested for validity within the plugin's known items.)
+ *            not tested for validity within the plugin's known items - use CWX_IsItemUIDValid
+ *            if necessary.)
  * @error     Entity is not an item.
  */
 native bool CWX_GetItemUIDFromEntity(int entity, char[] buffer, int maxlen);
 
 /**
- * Retrieves a copy of an custom item definition's "extended data" section by name, if one
+ * Retrieves a copy of a custom item definition's "extended data" section by name, if one
  * exists.  This handle should be freed by the calling plugin.
  * 
  * @return    A KeyValues handle containing the custom item definition's extended data named
