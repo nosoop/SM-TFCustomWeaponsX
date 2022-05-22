@@ -305,10 +305,53 @@ int EquipCustomItem(int client, const CustomItemDefinition item) {
 			SetEntProp(itemEntity, Prop_Send, "m_iAccountID", accountid);
 		}
 	}
-	
-	// TODO: implement a version that nullifies runtime attributes to their defaults
-	SetEntProp(itemEntity, Prop_Send, "m_bOnlyIterateItemViewAttributes",
-			!item.bKeepStaticAttributes);
+
+	if(!item.bKeepStaticAttributes) {
+		TF2Attrib_RemoveAll(itemEntity);
+
+		char valueType[2];
+		char valueFormat[64];
+
+		int staticAttribs[16];
+		float staticAttribsValues[16];
+
+		TF2Attrib_GetStaticAttribs(item.defindex, staticAttribs, staticAttribsValues);
+
+		for(int i = 0; i < 16; i++)
+		{
+			if(staticAttribs[i] == 0)
+				continue;
+
+			// Probably overkill
+			if(staticAttribs[i] == 796 || staticAttribs[i] == 724 || staticAttribs[i] == 817 || staticAttribs[i] == 834 
+				|| staticAttribs[i] == 745 || staticAttribs[i] == 731 || staticAttribs[i] == 746)
+				continue;
+
+			// "stored_as_integer" is absent from the attribute schema if its type is "string".
+			// TF2ED_GetAttributeDefinitionString returns false if it can't find the given string.
+			if(!TF2Econ_GetAttributeDefinitionString(staticAttribs[i], "stored_as_integer", valueType, sizeof(valueType)))
+				continue;
+
+			TF2Econ_GetAttributeDefinitionString(staticAttribs[i], "description_format", valueFormat, sizeof(valueFormat));
+
+			// Since we already know what we're working with and what we're looking for, we can manually handpick
+			// the most significative chars to check if they match. Eons faster than doing StrEqual or StrContains.
+
+			if(valueFormat[9] == 'a' && valueFormat[10] == 'd') // value_is_additive & value_is_additive_percentage
+			{
+				TF2Attrib_SetByDefIndex(itemEntity, staticAttribs[i], 0.0);
+			}
+			else if((valueFormat[9] == 'i' && valueFormat[18] == 'p')
+				|| (valueFormat[9] == 'p' && valueFormat[10] == 'e')) // value_is_percentage & value_is_inverted_percentage
+			{
+				TF2Attrib_SetByDefIndex(itemEntity, staticAttribs[i], 1.0);
+			}
+			else if(valueFormat[9] == 'o' && valueFormat[10] == 'r') // value_is_or
+			{
+				TF2Attrib_SetByDefIndex(itemEntity, staticAttribs[i], 0.0);
+			}
+		}
+	}
 	
 	// apply game attributes
 	if (item.nativeAttributes) {
