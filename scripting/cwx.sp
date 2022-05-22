@@ -707,7 +707,7 @@ static bool IsCustomItemAllowed(int client, const CustomItemDefinition item) {
 					bMedievalAllowedInSchema = !!StringToInt(configValue);
 				}
 			}
-			if (!bNativeAttributeOverride && item.bKeepStaticAttributes) {
+			if (!bNativeAttributeOverride && item.keepStaticAttributes) {
 				// TODO we should cache this...
 				ArrayList attribList = TF2Econ_GetItemStaticAttributes(item.defindex);
 				bMedievalAllowedInSchema =
