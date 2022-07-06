@@ -361,7 +361,6 @@ MRESReturn OnGetLoadoutItemPost(int client, Handle hReturn, Handle hParams) {
 		return MRES_Ignored;
 	}
 	
-	// TODO: work around invalid class items being invalidated
 	int playerClass = DHookGetParam(hParams, 1);
 	int loadoutSlot = DHookGetParam(hParams, 2);
 	

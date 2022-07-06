@@ -1,6 +1,8 @@
 // This is an example weapon configuration file containing two example weapons.
 // For more detailed and up-to-date documentation, visit the following page:
 // https://github.com/nosoop/SM-TFCustomWeaponsX/wiki/Getting-Started-(for-Server-Operators)#creating-a-new-item-from-scratch
+
+// two or more forward slashes indicates a comment - you cannot use /* multiline comments */ here
 "Items"
 {
 	"{e86f9513-1454-49dd-97b1-ce1faab2f89e}" // we just need a unique identifier here - this is not necessarily a UUID
@@ -42,13 +44,15 @@
 		}
 		
 		//// custom attributes by cattr -- this just gets copied into Custom Attributes' core, nested structures and all
+		//// you will need plugins that implement these attributes - CWX does not come with any preinstalled
+		//// they are linked in the wiki page here: https://github.com/nosoop/SM-TFCustAttr/wiki/Public-Custom-Attribute-Sets
 		"attributes_custom"
 		{
 			"airblast projectiles restores health"		"30"
 			"airblast projectiles adds self condition"	"condition=32 duration=10"
 			
-			// commented out below in case the below attribute exists
-			// if the attribute exists, you will need to ensure the associated resources are cached
+			//// commented out below in case the below attribute exists
+			//// if the attribute exists, you will need to ensure the associated resources are cached
 			// "clientmodel override"					"models/weapons/c_models/c_firkin_flamer/c_firkin_flamer.mdl"
 		}
 	}
