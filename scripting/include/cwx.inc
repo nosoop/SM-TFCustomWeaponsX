@@ -29,6 +29,12 @@
 #include <tf2>
 
 /**
+ * Callback for `CWX_GetItemList`.  Return `true` if the specified custom item UID should be
+ * added to the returned `ArrayList`.
+ */
+typedef CWXItemFilterCriteria = function bool(const char[] uid, any data);
+
+/**
  * Adds the given item to the player's session loadout.  This item will be equipped on the
  * player on next regeneration (spawn / resupply) and persisted until they disconnect.
  * 
@@ -36,6 +42,18 @@
  */
 native bool CWX_SetPlayerLoadoutItem(int client, TFClassType playerClass, const char[] uid,
 		int flags = 0);
+
+/**
+ * Removes the item from a player's session loadout.
+ */
+native void CWX_RemovePlayerLoadoutItem(int client, TFClassType playerClass, int itemSlot,
+		int flags = 0);
+
+/**
+ * Retrieves the UID active in a player's session loadout.
+ */
+native bool CWX_GetPlayerLoadoutItem(int client, TFClassType playerClass, int itemSlot,
+		char[] uid, int uidLen, int flags = 0);
 
 /**
  * Immediately equips the item onto the target player.  The item is not persisted.
@@ -47,6 +65,24 @@ native bool CWX_SetPlayerLoadoutItem(int client, TFClassType playerClass, const 
  * @error     Client is not in-game or uid is invalid.
  */
 native int CWX_EquipPlayerItem(int client, const char[] uid);
+
+/**
+ * Checks if the player has access to the given item.
+ * 
+ * @return    Whether or not the client can normally use the item.
+ */
+native bool CWX_CanPlayerAccessItem(int client, const char[] uid);
+
+/**
+ * Returns an ArrayList containing all valid item UIDs.  If a CWXItemFilterCriteria callback is
+ * passed in, the ArrayList only contains UIDs that the callback returned `true` on.
+ * 
+ * This handle is owned by the calling plugin, so it should be `delete`d when not needed
+ * anymore.
+ * 
+ * @return    ArrayList containing strings.
+ */
+native ArrayList CWX_GetItemList(CWXItemFilterCriteria func = INVALID_FUNCTION, any data = 0);
 
 /**
  * Validates that the given item UID is found in CWX's item list.
@@ -62,6 +98,12 @@ native bool CWX_IsItemUIDValid(const char[] uid);
  * @error     Entity is not an item.
  */
 native bool CWX_GetItemUIDFromEntity(int entity, char[] buffer, int maxlen);
+
+/**
+ * Returns the item's loadout slot for the given class, or -1 if the item UID or item / class
+ * combination is not valid.
+ */
+native int CWX_GetItemLoadoutSlot(const char[] uid, TFClassType playerClass);
 
 /**
  * Retrieves a copy of a custom item definition's "extended data" section by name, if one

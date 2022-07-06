@@ -79,10 +79,15 @@ public APLRes AskPluginLoad2(Handle self, bool late, char[] error, int maxlen) {
 	RegPluginLibrary("cwx");
 	
 	CreateNative("CWX_SetPlayerLoadoutItem", Native_SetPlayerLoadoutItem);
+	CreateNative("CWX_RemovePlayerLoadoutItem", Native_RemovePlayerLoadoutItem);
+	CreateNative("CWX_GetPlayerLoadoutItem", Native_GetPlayerLoadoutItem);
 	CreateNative("CWX_EquipPlayerItem", Native_EquipPlayerItem);
+	CreateNative("CWX_CanPlayerAccessItem", Native_CanPlayerAccessItem);
+	CreateNative("CWX_GetItemList", Native_GetItemList);
 	CreateNative("CWX_IsItemUIDValid", Native_IsItemUIDValid);
 	CreateNative("CWX_GetItemUIDFromEntity", Native_GetItemUIDFromEntity);
 	CreateNative("CWX_GetItemExtData", Native_GetItemExtData);
+	CreateNative("CWX_GetItemLoadoutSlot", Native_GetItemLoadoutSlot);
 	
 	return APLRes_Success;
 }
@@ -220,6 +225,50 @@ int Native_EquipPlayerItem(Handle plugin, int argc) {
 	return IsValidEntity(itemEntity)? EntIndexToEntRef(itemEntity) : INVALID_ENT_REFERENCE;
 }
 
+// bool CWX_CanPlayerAccessItem(int client, const char[] uid);
+int Native_CanPlayerAccessItem(Handle plugin, int argc) {
+	int client = GetNativeCell(1);
+	
+	char itemuid[MAX_ITEM_IDENTIFIER_LENGTH];
+	GetNativeString(2, itemuid, sizeof(itemuid));
+	
+	CustomItemDefinition item;
+	if (!GetCustomItemDefinition(itemuid, item)) {
+		return false;
+	}
+	return CanPlayerAccessItem(client, item);
+}
+
+// ArrayList CWX_GetItemList(CWXItemFilterCriteria func = INVALID_FUNCTION, any data = 0);
+int Native_GetItemList(Handle plugin, int argc) {
+	Function func = GetNativeFunction(1);
+	any data = GetNativeCell(2);
+	
+	StringMapSnapshot itemSnapshot = GetCustomItemList();
+	
+	ArrayList itemList = new ArrayList(ByteCountToCells(MAX_ITEM_IDENTIFIER_LENGTH));
+	for (int i, n = itemSnapshot.Length; i < n; i++) {
+		char itemuid[MAX_ITEM_IDENTIFIER_LENGTH];
+		itemSnapshot.GetKey(i, itemuid, sizeof(itemuid));
+		
+		if (func == INVALID_FUNCTION) {
+			itemList.PushString(itemuid);
+			continue;
+		}
+		
+		bool result;
+		Call_StartFunction(plugin, func);
+		Call_PushString(itemuid);
+		Call_PushCell(data);
+		Call_Finish(result);
+		
+		if (result) {
+			itemList.PushString(itemuid);
+		}
+	}
+	return MoveHandle(itemList, plugin);
+}
+
 // bool CWX_IsItemUIDValid(const char[] uid);
 int Native_IsItemUIDValid(Handle plugin, int argc) {
 	char itemuid[MAX_ITEM_IDENTIFIER_LENGTH];
@@ -257,6 +306,19 @@ int Native_GetItemUIDFromEntity(Handle plugin, int argc) {
 	
 	SetNativeString(2, buffer, maxlen);
 	return true;
+}
+
+// int CWX_GetItemLoadoutSlot(const char[] uid, TFClassType playerClass);
+int Native_GetItemLoadoutSlot(Handle plugin, int argc) {
+	char uid[MAX_ITEM_IDENTIFIER_LENGTH];
+	GetNativeString(1, uid, sizeof(uid));
+	int playerClass = GetNativeCell(2);
+	
+	CustomItemDefinition customItem;
+	if (!GetCustomItemDefinition(uid, customItem)) {
+		return -1;
+	}
+	return customItem.loadoutPosition[playerClass];
 }
 
 // optional<KeyValues> CWX_GetItemExtData(const char[] uid, const char[] section);
@@ -557,14 +619,52 @@ bool SetClientCustomLoadoutItem(int client, int playerClass, const char[] itemui
 	return true;
 }
 
+// void CWX_RemovePlayerLoadoutItem(int client, TFClassType playerClass, int itemSlot, int flags = 0);
+int Native_RemovePlayerLoadoutItem(Handle plugin, int argc) {
+	int client = GetNativeCell(1);
+	int playerClass = GetNativeCell(2);
+	int itemSlot = GetNativeCell(3);
+	int flags = GetNativeCell(4);
+	
+	UnsetClientCustomLoadoutItem(client, playerClass, itemSlot, flags);
+}
+
 /**
  * Unsets any existing item in the given loadout slot for the specified class.
  */
-void UnsetClientCustomLoadoutItem(int client, int playerClass, int itemSlot) {
-	g_CurrentLoadout[client][playerClass][itemSlot].Clear();
-	g_ItemPersistCookies[playerClass][itemSlot].Set(client, "");
+void UnsetClientCustomLoadoutItem(int client, int playerClass, int itemSlot, int flags) {
+	if (flags & LOADOUT_FLAG_UPDATE_BACKEND) {
+		g_CurrentLoadout[client][playerClass][itemSlot].Clear();
+		g_ItemPersistCookies[playerClass][itemSlot].Set(client, "");
+	} else {
+		g_CurrentLoadout[client][playerClass][itemSlot].SetOverloadItemUID("");
+	}
 	
-	OnClientCustomLoadoutItemModified(client, playerClass);
+	if (flags & LOADOUT_FLAG_ATTEMPT_REGEN) {
+		OnClientCustomLoadoutItemModified(client, playerClass);
+	}
+}
+
+// bool CWX_GetPlayerLoadoutItem(int client, TFClassType playerClass, int itemSlot, char[] uid, int uidLen, int flags = 0);
+int Native_GetPlayerLoadoutItem(Handle plugin, int argc) {
+	int client = GetNativeCell(1);
+	int playerClass = GetNativeCell(2);
+	int itemSlot = GetNativeCell(3);
+	int uidLen = GetNativeCell(5);
+	int flags = GetNativeCell(6);
+	
+	if (g_CurrentLoadout[client][playerClass][itemSlot].IsEmpty()) {
+		return false;
+	}
+	
+	char[] uid = new char[uidLen];
+	if (flags & LOADOUT_FLAG_UPDATE_BACKEND) {
+		strcopy(uid, uidLen, g_CurrentLoadout[client][playerClass][itemSlot].uid);
+	} else {
+		strcopy(uid, uidLen, g_CurrentLoadout[client][playerClass][itemSlot].override_uid);
+	}
+	SetNativeString(4, uid, uidLen);
+	return true;
 }
 
 /**
@@ -620,7 +720,15 @@ bool CanPlayerEquipItem(int client, const CustomItemDefinition item) {
 	
 	if (item.loadoutPosition[playerClass] == -1) {
 		return false;
-	} else if (item.access[0] && !CheckCommandAccess(client, item.access, 0, true)) {
+	}
+	return CanPlayerAccessItem(client, item);
+}
+
+/**
+ * Returns whether or not the player has access to this item.
+ */
+bool CanPlayerAccessItem(int client, const CustomItemDefinition item) {
+	if (item.access[0] && !CheckCommandAccess(client, item.access, 0, true)) {
 		// this item requires access
 		return false;
 	}

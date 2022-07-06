@@ -310,7 +310,8 @@ static int OnEquipMenuEvent(Menu menu, MenuAction action, int param1, int param2
 						LOADOUT_FLAG_UPDATE_BACKEND | LOADOUT_FLAG_ATTEMPT_REGEN);
 			} else {
 				UnsetClientCustomLoadoutItem(client, g_iPlayerClassInMenu[client],
-						g_iPlayerSlotInMenu[client]);
+						g_iPlayerSlotInMenu[client],
+						LOADOUT_FLAG_UPDATE_BACKEND | LOADOUT_FLAG_ATTEMPT_REGEN);
 			}
 		}
 		
