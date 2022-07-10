@@ -47,6 +47,8 @@ The SourceMod plugins / extensions listed below are required for Custom Weapons 
 - [TF2Utils](https://github.com/nosoop/SM-TFUtils)
   - Requires minimum version 0.11.0.
 - [DHooks2](https://github.com/peace-maker/DHooks2)
+  - The current stable version of SourceMod (1.11 or newer) now comes with this preinstalled.
+  You only need to download this separately if you are using 1.10.
 
 Additional software recommendations that aren't completely necessary:
 
