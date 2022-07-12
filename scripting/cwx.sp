@@ -266,6 +266,8 @@ int Native_GetItemList(Handle plugin, int argc) {
 			itemList.PushString(itemuid);
 		}
 	}
+	delete itemSnapshot;
+	
 	return MoveHandle(itemList, plugin);
 }
 
