@@ -487,6 +487,9 @@ MRESReturn OnManageRegularWeaponsPre(int client, Handle hParams) {
 		char classname[64];
 		TF2Econ_GetItemClassName(validitemdef, classname, sizeof(classname));
 		
+		// we need to translate the item class because base shotguns use 'tf_weapon_shotgun'
+		TF2Econ_TranslateWeaponEntForClass(classname, sizeof(classname), playerClass);
+		
 		SetEntProp(storedItem, Prop_Send, "m_iItemDefinitionIndex", validitemdef);
 		SetEntPropString(storedItem, Prop_Data, "m_iClassname", classname);
 	}
