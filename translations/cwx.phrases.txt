@@ -928,13 +928,16 @@
 	"UnequipCustomItem"
 	{
 		"en" "[No custom item]"
+		"ru" "[Нет польз. предмета]"
 	}
 	"CustomItemsUnavailable"
 	{
 		"en" "(Custom items are currently disabled by the server operator.)"
+		"ru" "(Пользовательские предметы в настоящее время отключены оператором сервера.)"
 	}
 	"ItemForcedByServer"
 	{
 		"en" "(forced by server)"
+		"ru" "(использ. сервером)"
 	}
 }
