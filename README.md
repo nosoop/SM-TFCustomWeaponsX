@@ -42,7 +42,9 @@ The SourceMod plugins / extensions listed below are required for Custom Weapons 
 - [Econ Data](https://github.com/nosoop/SM-TFEconData)
   - Requires minimum version 0.18.0.
 - [TF2Attributes](https://github.com/nosoop/tf2attributes)
-  - Requires the string attributes pre-release!  (1.7.0)
+  - You must specifically use @nosoop's fork of TF2Attributes &mdash; it has additional features
+  that are not available in the original upstream.
+  - Requires minimum version 1.7.0 or newer.
 - [TF2 Custom Attributes](https://github.com/nosoop/SM-TFCustAttr)
 - [TF2Utils](https://github.com/nosoop/SM-TFUtils)
   - Requires minimum version 0.11.0.
