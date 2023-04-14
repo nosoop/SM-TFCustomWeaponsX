@@ -354,6 +354,7 @@ Action OnPlayerLoadoutUpdated(UserMsg msg_id, BfRead msg, const int[] players,
 		int playersNum, bool reliable, bool init) {
 	int client = msg.ReadByte();
 	s_LastUpdatedClient = GetClientSerial(client);
+	return Plugin_Continue;
 }
 
 /**
@@ -431,18 +432,17 @@ MRESReturn OnGetLoadoutItemPost(int client, Handle hReturn, Handle hParams) {
 	if (loadoutSlot < 0 || loadoutSlot >= NUM_ITEMS) {
 		return MRES_Ignored;
 	}
+
+	if (g_CurrentLoadout[client][playerClass][loadoutSlot].IsEmpty()) {
+		// we don't have nor want a custom item; let the game process it
+		return MRES_Ignored;
+	}
 	
+	// the loadout entity we keep track of isn't valid, so we may need to make one
+	// we expect to have to equip something new at this point
 	int storedItem = g_CurrentLoadout[client][playerClass][loadoutSlot].entity;
 	if (!IsValidEntity(storedItem) || GetEntityFlags(storedItem) & FL_KILLME
 			|| !HasEntProp(storedItem, Prop_Send, "m_Item")) {
-		// the loadout entity we keep track of isn't valid, so we may need to make one
-		// we expect to have to equip something new at this point
-		
-		if (g_CurrentLoadout[client][playerClass][loadoutSlot].IsEmpty()) {
-			// we don't have nor want a custom item; let the game process it
-			return MRES_Ignored;
-		}
-		
 		/**
 		 * We have a custom item we'd like to spawn in; don't return a loadout item, otherwise
 		 * we may equip / unequip a user's inventory weapon that has side effects
@@ -546,6 +546,7 @@ public Action OnClientCommandKeyValues(int client, KeyValues kv) {
 	if (StrEqual(cmd, "MVM_Respec")) {
 		g_bForceReequipItems[client] = true;
 	}
+	return Plugin_Continue;
 }
 
 public void OnClientCommandKeyValues_Post(int client, KeyValues kv) {
@@ -632,6 +633,7 @@ int Native_RemovePlayerLoadoutItem(Handle plugin, int argc) {
 	int flags = GetNativeCell(4);
 	
 	UnsetClientCustomLoadoutItem(client, playerClass, itemSlot, flags);
+	return 0;
 }
 
 /**
