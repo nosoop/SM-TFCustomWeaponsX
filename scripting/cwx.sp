@@ -482,6 +482,16 @@ MRESReturn OnManageRegularWeaponsPre(int client, Handle hParams) {
 			continue;
 		}
 		
+		int currentitemdef = GetEntProp(storedItem, Prop_Send, "m_iItemDefinitionIndex");
+		if (TF2Econ_GetItemLoadoutSlot(currentitemdef, playerClass) != -1) {
+			// only replace the itemdef if the existing one is not valid for the class
+			// this is because something something static attribute retention
+			
+			// we should probably just drop support for invalid weapons at this point;
+			// it's starting to be a headache to manage
+			continue;
+		}
+		
 		// replace the itemdef and classname with ones actually valid for that class to skirt
 		// around the ValidateWeapons checks
 		char classname[64];
