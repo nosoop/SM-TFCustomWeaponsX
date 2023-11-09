@@ -58,8 +58,8 @@ bool TF2_RemoveItemByLoadoutSlot(int client, int loadoutSlot) {
 }
 
 /**
- * Equips the given econ item.  If the item is a weapon, the ammo and clip are reset to full
- * capacity.
+ * Equips the given econ item.  If the item is a weapon, the ammo and clip are reset to their
+ * correct starting capacity.
  */
 void TF2_EquipPlayerEconItem(int client, int item) {
 	char weaponClass[64];
@@ -71,9 +71,15 @@ void TF2_EquipPlayerEconItem(int client, int item) {
 		EquipPlayerWeapon(client, item);
 		TF2_ResetWeaponAmmo(item);
 		
-		int ammoType = GetEntProp(item, Prop_Send, "m_iPrimaryAmmoType");
-		if (ammoType != -1) {
-			SetEntProp(item, Prop_Send, "m_iClip1", TF2Util_GetWeaponMaxClip(item));
-		}
+		/**
+		 * This calls CBaseCombatWeapon::GiveDefaultAmmo(), which sets up the appropriate clip
+		 * count.  This mainly handles the case when the `auto_fires_full_clip` attribute class
+		 * is present on the item.
+		 * 
+		 * Hope there aren't any further side effects from calling ActivateEntity; otherwise
+		 * we'll have to add support for CBaseCombatWeapon::GiveDefaultAmmo() somewhere.
+		 * Probably in TF2 Utils.
+		 */
+		ActivateEntity(item);
 	}
 }
