@@ -344,6 +344,14 @@ int EquipCustomItem(int client, const CustomItemDefinition item) {
 		int weaponSlot = TF2Util_GetWeaponSlot(itemEntity);
 		bRemovedWeaponInSlot = IsValidEntity(GetPlayerWeaponSlot(client, weaponSlot));
 		TF2_RemoveWeaponSlot(client, weaponSlot);
+		
+		/**
+		 * ::Spawn calls ::Precache, which is where mod_use_metal_ammo_type takes effect.
+		 * 
+		 * Calling this a second time (after TF2_CreateItem) may have side effects that I'm not
+		 * aware of, but we'll burn that bridge when we cross it.
+		 */
+		DispatchSpawn(itemEntity);
 	}
 	
 	// we didn't remove a weapon by its weapon slot; remove item based on loadout slot
