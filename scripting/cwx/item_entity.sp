@@ -22,7 +22,7 @@ stock int TF2_CreateItem(int defindex, const char[] itemClass) {
 		
 		SetEntProp(weapon, Prop_Send, "m_iEntityQuality", 6);
 		SetEntProp(weapon, Prop_Send, "m_iEntityLevel", 1);
-
+		
 		// if this is not toggled, then the weapon entity may not be visible
 		SetEntProp(weapon, Prop_Send, "m_bValidatedAttachedEntity", true);
 		
