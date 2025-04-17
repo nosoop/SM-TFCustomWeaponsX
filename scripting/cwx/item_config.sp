@@ -337,6 +337,24 @@ int EquipCustomItem(int client, const CustomItemDefinition item) {
 		TF2CustAttr_UseKeyValues(itemEntity, item.customAttributes);
 	}
 	
+	// HACK: the stock build PDA / sapper needs additional fixups
+	// https://github.com/ValveSoftware/source-sdk-2013/blob/0565403b153dfcde602f6f58d8f4d13483696a13/src/game/server/tf/tf_player.cpp#L4306-L4315
+	// https://github.com/gemidyne/microtf2/blob/5c4355e5257c09929d1663dcf767173600cd6e1d/src/scripting/Weapons.sp#L99-L113
+	if (StrEqual(itemClass, "tf_weapon_sapper")) {
+		SetEntProp(itemEntity, Prop_Data, "m_iSubType", 3);
+		SetEntProp(itemEntity, Prop_Send, "m_iObjectType", 3);
+		SetEntProp(itemEntity, Prop_Send, "m_aBuildableObjectTypes", 0, .element = 0);
+		SetEntProp(itemEntity, Prop_Send, "m_aBuildableObjectTypes", 0, .element = 1);
+		SetEntProp(itemEntity, Prop_Send, "m_aBuildableObjectTypes", 0, .element = 2);
+		SetEntProp(itemEntity, Prop_Send, "m_aBuildableObjectTypes", 1, .element = 3);
+	} else if (StrEqual(itemClass, "tf_weapon_pda_engineer_build")) {
+		SetEntProp(itemEntity, Prop_Send, "m_iObjectType", 3);
+		SetEntProp(itemEntity, Prop_Send, "m_aBuildableObjectTypes", 1, .element = 0);
+		SetEntProp(itemEntity, Prop_Send, "m_aBuildableObjectTypes", 1, .element = 1);
+		SetEntProp(itemEntity, Prop_Send, "m_aBuildableObjectTypes", 1, .element = 2);
+		SetEntProp(itemEntity, Prop_Send, "m_aBuildableObjectTypes", 0, .element = 3);
+	}
+	
 	// remove existing item(s) on player
 	bool bRemovedWeaponInSlot;
 	if (TF2Util_IsEntityWeapon(itemEntity)) {
