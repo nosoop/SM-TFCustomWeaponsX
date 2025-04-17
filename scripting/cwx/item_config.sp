@@ -19,7 +19,7 @@ enum struct CustomItemDefinition {
 	KeyValues nativeAttributes;
 	KeyValues customAttributes;
 	
-	bool bKeepStaticAttributes;
+	KeepStaticType keepStaticAttributes;
 	
 	void Init() {
 		this.defindex = TF_ITEMDEF_DEFAULT;
@@ -55,6 +55,12 @@ enum struct CustomItemDefinition {
 		return result;
 	}
 }
+
+enum KeepStaticType {
+	KeepStatic_False = 0,
+	KeepStatic_True,
+	KeepStatic_Nullify
+};
 
 /**
  * Holds a uid to CustomItemDefinition mapping.
@@ -197,7 +203,7 @@ bool CreateItemFromSection(KeyValues config) {
 	
 	config.GetString("item_class", item.className, sizeof(item.className), item.className);
 	
-	item.bKeepStaticAttributes = !!config.GetNum("keep_static_attrs", true);
+	item.keepStaticAttributes = view_as<KeepStaticType>(config.GetNum("keep_static_attrs", true));
 	
 	// allows restricting access to the item
 	config.GetString("access", item.access, sizeof(item.access));
@@ -305,11 +311,55 @@ int EquipCustomItem(int client, const CustomItemDefinition item) {
 			SetEntProp(itemEntity, Prop_Send, "m_iAccountID", accountid);
 		}
 	}
-	
-	// TODO: implement a version that nullifies runtime attributes to their defaults
-	SetEntProp(itemEntity, Prop_Send, "m_bOnlyIterateItemViewAttributes",
-			!item.bKeepStaticAttributes);
-	
+
+	switch(item.keepStaticAttributes) {
+		case KeepStatic_False: {
+			SetEntProp(itemEntity, Prop_Send, "m_bOnlyIterateItemViewAttributes", true);
+		}
+		case KeepStatic_Nullify: {
+			TF2Attrib_RemoveAll(itemEntity);
+
+			char valueType[2];
+			char valueFormat[64];
+
+			int staticAttribs[16];
+			float staticAttribsValues[16];
+
+			int staticAttribsNum = TF2Attrib_GetStaticAttribs(item.defindex, staticAttribs, staticAttribsValues);
+
+			for(int i = 0; i < staticAttribsNum; i++)
+			{
+				// We don't want to nullify attributes that bring a "cosmetic" value.
+				// 834 ( paintkit_proto_def_index ), 745 ( has team color paintkit )
+				if(staticAttribs[i] == 834 || staticAttribs[i] == 745) {
+					continue;
+				}
+
+				// "stored_as_integer" is absent from the attribute schema if its type is "string".
+				// TF2ED_GetAttributeDefinitionString returns false if it can't find the given string.
+				if(!TF2Econ_GetAttributeDefinitionString(staticAttribs[i], "stored_as_integer", valueType, sizeof(valueType))) {
+					continue;
+				}
+
+				TF2Econ_GetAttributeDefinitionString(staticAttribs[i], "description_format", valueFormat, sizeof(valueFormat));
+
+				// Since we already know what we're working with and what we're looking for, we can manually handpick
+				// the most significative chars to check if they match. Eons faster than doing StrEqual or StrContains.
+
+				if(valueFormat[9] == 'a' && valueFormat[10] == 'd') { // value_is_additive & value_is_additive_percentage
+					TF2Attrib_SetByDefIndex(itemEntity, staticAttribs[i], 0.0);
+				}
+				else if((valueFormat[9] == 'i' && valueFormat[18] == 'p')
+					|| (valueFormat[9] == 'p' && valueFormat[10] == 'e')) { // value_is_percentage & value_is_inverted_percentage
+					TF2Attrib_SetByDefIndex(itemEntity, staticAttribs[i], 1.0);
+				}
+				else if(valueFormat[9] == 'o' && valueFormat[10] == 'r') { // value_is_or
+					TF2Attrib_SetByDefIndex(itemEntity, staticAttribs[i], 0.0);
+				}
+			}
+		}
+	}
+
 	// apply game attributes
 	if (item.nativeAttributes) {
 		if (item.nativeAttributes.GotoFirstSubKey(false)) {
