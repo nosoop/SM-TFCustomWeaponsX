@@ -207,7 +207,7 @@ public void OnClientCookiesCached(int client) {
 			if(uid[0] != '\0') {
 				bool unequip = false;
 				CustomItemDefinition item;
-				if (!GetCustomItemDefinition(uid, item) || !IsCustomItemAllowed(client, item)) {
+				if (!GetCustomItemDefinition(uid, item)) {
 					//PrintToConsole(client, "Invalid item: '%s' (class %i, slot: %i), unequipping", uid, c, i);
 					unequip = true;
 				}
