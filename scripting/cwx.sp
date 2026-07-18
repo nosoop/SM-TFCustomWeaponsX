@@ -204,20 +204,23 @@ public void OnClientCookiesCached(int client) {
 		for (int i; i < NUM_ITEMS; i++) {
 			char uid[MAX_ITEM_IDENTIFIER_LENGTH];
 			g_ItemPersistCookies[c][i].Get(client, uid, sizeof(uid));
-			if (uid[0] != '\0') {
-				bool unequip = false;
-				CustomItemDefinition item;
-				if (!GetCustomItemDefinition(uid, item)) {
-					unequip = true;
-				} else if (item.loadoutPosition[c] == -1 || item.loadoutPosition[c] != i) {
-					unequip = true;
-				}
-				
-				if (!unequip) {
-					strcopy(g_CurrentLoadout[client][c][i].uid, sizeof(g_CurrentLoadout[][][].uid), uid);
-				} else {
-					g_ItemPersistCookies[c][i].Set(client, "");
-				}
+			if (uid[0] == '\0') {
+				continue;
+			}
+			
+			// load into the runtime loadout iff item is valid and used for slot
+			bool valid = true;
+			CustomItemDefinition item;
+			if (!GetCustomItemDefinition(uid, item)) {
+				valid = false;
+			} else if (item.loadoutPosition[c] == -1 || item.loadoutPosition[c] != i) {
+				valid = false;
+			}
+			
+			if (valid) {
+				strcopy(g_CurrentLoadout[client][c][i].uid, sizeof(g_CurrentLoadout[][][].uid), uid);
+			} else {
+				g_ItemPersistCookies[c][i].Set(client, "");
 			}
 		}
 	}
