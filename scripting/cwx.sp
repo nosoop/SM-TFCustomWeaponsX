@@ -213,7 +213,7 @@ public void OnClientCookiesCached(int client) {
 			CustomItemDefinition item;
 			if (!GetCustomItemDefinition(uid, item)) {
 				valid = false;
-			} else if (item.loadoutPosition[c] == -1 || item.loadoutPosition[c] != i) {
+			} else if (item.loadoutPosition[c] != i) {
 				valid = false;
 			}
 			
