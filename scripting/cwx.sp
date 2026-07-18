@@ -204,22 +204,20 @@ public void OnClientCookiesCached(int client) {
 		for (int i; i < NUM_ITEMS; i++) {
 			char uid[MAX_ITEM_IDENTIFIER_LENGTH];
 			g_ItemPersistCookies[c][i].Get(client, uid, sizeof(uid));
-			if(uid[0] != '\0') {
+			if (uid[0] != '\0') {
 				bool unequip = false;
 				CustomItemDefinition item;
 				if (!GetCustomItemDefinition(uid, item)) {
-					//PrintToConsole(client, "Invalid item: '%s' (class %i, slot: %i), unequipping", uid, c, i);
+					unequip = true;
+				} else if (item.loadoutPosition[c] == -1 || item.loadoutPosition[c] != i) {
 					unequip = true;
 				}
-				else if (item.loadoutPosition[c] == -1 || item.loadoutPosition[c] != i) {
-					//PrintToConsole(client, "Item '%s' no longer accessible for class %i slot %i, unequipping", uid, c, i);
-					unequip = true;
-				}
-
-				if(!unequip) {
+				
+				if (!unequip) {
 					strcopy(g_CurrentLoadout[client][c][i].uid, sizeof(g_CurrentLoadout[][][].uid), uid);
+				} else {
+					g_ItemPersistCookies[c][i].Set(client, "");
 				}
-				else g_ItemPersistCookies[c][i].Set(client, "");
 			}
 		}
 	}
